@@ -620,7 +620,7 @@ class XRF(object):
 
         return XRF(dataframe=cleaned)
 
-    def plot_elements(self, core_name="Core", figsize=(20, 22), rows=2, lw=0.75,
+    def plot_elements(self, core_name="Core", figsize=(10, 8), ylimit=None, xlimit=None, rows=2, lw=0.75, marker=".", unit="percent",
                       savefig=False, dpi=350, savepath="elements.png"):
 
         # extract a list of elements from self.dataframe
@@ -646,14 +646,20 @@ class XRF(object):
             ax = axs[i] if num_elements > 1 else axs
             # plot the data
             ax.plot(self.dataframe[element],
-                    self.dataframe.index, marker=".", lw=lw)
+                    self.dataframe.index, marker=marker, lw=lw)
             ax.grid()
             ax.set_title(f"{element}", fontsize=12)
 
             # set the y limits from 0 to max depth
-            ax.set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
+            if ylimit:
+                ax.set_ylim(0, (max(ylimit, self.dataframe.index[-1])))
+            else:
+                ax.set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
             # set the x limits from 0 to maximal concentration of the element
-            ax.set_xlim(0, max(self.dataframe[element]))
+            if xlimit:
+                ax.set_xlim(0, (max(xlimit[i], self.dataframe[element].max())))
+            else:
+                ax.set_xlim(0, self.dataframe[element].max())
 
             # invert the y axis
             ax.yaxis.set_inverted(True)
@@ -664,7 +670,7 @@ class XRF(object):
                 ax.set_ylabel("Depth (cm)")
 
         # add general title to the plot
-        plt.suptitle(f"{core_name} XRF Results (in ppm)", fontsize=22, y=0.99)
+        plt.suptitle(f"{core_name} XRF Results (in {unit})", fontsize=16, y=0.99)
 
         plt.tight_layout()
 
