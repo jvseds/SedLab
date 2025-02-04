@@ -679,12 +679,12 @@ class XRF(object):
 
         return fig, axs
 
-    def plot_ratios(self, core_name="Core", ratio_list=[("Si", "Al")], lw=0.75,
+    def plot_ratios(self, core_name="Core", ratio_list=[("Si", "Al")], lw=0.75, figsize=(6, 8), ylimit=None, xlimit=None, marker=".",
                     savefig=False, dpi=350, savepath="element_ratios.png"):
 
         num_ratios = len(ratio_list)
 
-        fig, axs = plt.subplots(nrows=1, ncols=num_ratios, figsize=(2*num_ratios, 8),
+        fig, axs = plt.subplots(nrows=1, ncols=num_ratios, figsize=figsize,
                                 sharey=True)
         # in case there's only one ratio, ensure axs is iterable
         if num_ratios == 1:
@@ -694,19 +694,28 @@ class XRF(object):
             # calculate elemental ratio
             ratio = self.dataframe[num] / self.dataframe[denom]
             # plot ratio
-            axs[i].plot(ratio, self.dataframe.index, marker=".", lw=lw, ls="-")
+            axs[i].plot(ratio, self.dataframe.index, marker=marker, lw=lw, ls="-")
             axs[i].grid()
+
             # set axes limits
-            axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
-            axs[i].set_xlim(0, max(ratio))
+            if ylimit:
+                axs[i].set_ylim(0, max(ylimit, self.dataframe.index[-1]))
+            else:
+                axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
+            # axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
+            if xlimit:
+                axs[i].set_xlim(0, max(xlimit[i], max(ratio)))
+            else:
+                axs[i].set_xlim(0, max(ratio))
+
             # invert the y axis
             axs[i].yaxis.set_inverted(True)
             # set labels
             axs[i].set_title(f"{num}/{denom}", fontsize=14)
             if i == 0:
-                axs[i].set_ylabel("Depth (cm)", fontsize=16)
+                axs[i].set_ylabel("Depth (cm)", fontsize=15)
 
-        plt.suptitle(f"{core_name} Elemental Ratios", fontsize=22, y=0.99)
+        plt.suptitle(f"{core_name} Elemental Ratios", fontsize=16, y=0.99)
         plt.tight_layout()
 
         if savefig:
