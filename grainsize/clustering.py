@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.hierarchy import dendrogram, linkage
+import matplotlib.pyplot as plt
 
 
 class BCD(object):
@@ -85,3 +87,30 @@ class BCD(object):
             self.bc_square = squareform(self.bc_dist)
 
         return pd.DataFrame(self.bc_square)
+
+    def plot_dendrogram(self, method="average", core_name="Core", savefig=False,
+                        save_path="dendrogram.png", dpi=350):
+        """
+        Plot a dendrogram from the Bray-Curtis distances.
+        """
+        # make sure the BC distances are calculated
+        if self.bc_dist is None:
+            self.bc_dist = self.compute_BCD()
+        if self.bc_square is None:
+            self.bc_square = squareform(self.bc_dist)
+
+        # calculate linkage matrix
+        la_matrix = linkage(self.bc_dist, method=method)
+
+        # create the dendrogram
+        fig, ax = plt.subplots(nrows=1, figsize=(10, 8))
+        dendrogram(la_matrix, labels=self.dataframe.index,
+                   orientation="right", ax=ax)
+        ax.set_xlabel("Dissimilarity")
+        ax.set_ylabel("Depth (cm)")
+        ax.set_title(f"Bray-Curtis Dissimilarity for {core_name}")
+
+        if savefig:
+            plt.savefig(save_path, dpi=dpi)
+
+        return fig, ax
