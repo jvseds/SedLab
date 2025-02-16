@@ -670,7 +670,8 @@ class XRF(object):
                 ax.set_ylabel("Depth (cm)")
 
         # add general title to the plot
-        plt.suptitle(f"{core_name} XRF Results (in {unit})", fontsize=16, y=0.99)
+        plt.suptitle(f"{core_name} XRF Results (in {unit})",
+                     fontsize=16, y=0.99)
 
         plt.tight_layout()
 
@@ -694,14 +695,16 @@ class XRF(object):
             # calculate elemental ratio
             ratio = self.dataframe[num] / self.dataframe[denom]
             # plot ratio
-            axs[i].plot(ratio, self.dataframe.index, marker=marker, lw=lw, ls="-")
+            axs[i].plot(ratio, self.dataframe.index,
+                        marker=marker, lw=lw, ls="-")
             axs[i].grid()
 
             # set axes limits
             if ylimit:
                 axs[i].set_ylim(0, max(ylimit, self.dataframe.index[-1]))
             else:
-                axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
+                axs[i].set_ylim(self.dataframe.index[0],
+                                self.dataframe.index[-1])
             # axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
             if xlimit:
                 axs[i].set_xlim(0, max(xlimit[i], max(ratio)))
@@ -768,7 +771,6 @@ class Stratigraphy(object):
         self.dataframe = df
         return df
 
-
     def plot_stratigraphy(self, figsize=(2.75, 18), core_name="Core", savefig=False,
                           savepath="core_strat.png", dpi=350):
         fig, ax = plt.subplots(figsize=figsize)
@@ -833,7 +835,7 @@ class CoreAnalysis:
 
         import matplotlib.cm as cm
         import matplotlib.colors as mcolors
-        
+
         # extract depth index
         depth = gs_obj.dataframe.index
 
@@ -849,7 +851,8 @@ class CoreAnalysis:
         num_plots = len(gs_stats) + len(xrf_els)
 
         # fig and axes
-        fig, axes = plt.subplots(nrows=1, ncols=num_plots, figsize=figsize, sharey=True)
+        fig, axes = plt.subplots(
+            nrows=1, ncols=num_plots, figsize=figsize, sharey=True)
 
         # make `axes` iterable in any case
         if num_plots == 1:
