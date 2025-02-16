@@ -13,18 +13,17 @@ class BCD(object):
         else:
             self.dataframe = None
 
+        self.bc_dist = None
+        self.bc_square = None
+
+        # compute Bray Curtis distance when dataframe is initialized
+        if self.dataframe is not None:
+            self.compute_BCD()
+
     def __repr__(self):
         if self.dataframe is not None:
             return repr(self.dataframe)
         return "An empty BCD object with no dataframe"
-
-    # def __getattribute__(self, item):
-    #     if item == "dataframe":
-    #         return object.__getattribute__(self, "dataframe")
-    #     dataframe = object.__getattribute__(self, "dataframe")
-    #     if dataframe is not None and hasattr(dataframe, item):
-    #         return getattr(dataframe, item)
-    #     return object.__getattribute__(self, item)
 
     def __getattr__(self, item):
         """
@@ -45,32 +44,44 @@ class BCD(object):
         """
         Create a matrix for Bray-Curtis distance computation.
         """
+        if self.dataframe is None:
+            raise ValueError(
+                "Dataframe for this BCD object is None, cannot compute distance")
+
         # validate that all values are numeric
         bc_matrix = self.dataframe.iloc[:, 1:].apply(
             pd.to_numeric, errors="coerce")
-        # drop depth index and convert data to np array
-        bc_matrix = bc_matrix.values
         # convert percentages to fractions between 0 and 1
         bc_matrix = bc_matrix / 100
 
-        return bc_matrix
+        return bc_matrix.values
 
     def compute_BCD(self):
         """
         Compute Bray-Curtis distance between samples.
         """
-        bc_matrix = self.create_CB_matrix()
-        bc_distances = pdist(bc_matrix, metric='braycurtis')
+        if self.dataframe is None:
+            raise ValueError(
+                "Dataframe for this BCD object is None, cannot compute distance")
 
-        return bc_distances
+        bc_matrix = self.create_CB_matrix()
+        self.bc_dist = pdist(bc_matrix, metric="braycurtis")
+        # self.bc_square = squareform(self.bc_dist)
+
+        return self.bc_dist
 
     def compute_squareform(self):
         """
         Convert the computed Bray-Curtis distances into a squareform.
         """
-        bc_distances = self.compute_BCD()
-        bc_squareform = squareform(bc_distances)
-        # turn the squareform array into a dataframe
-        sf_df = BCD(dataframe=pd.DataFrame(bc_squareform))
+        # bc_distances = self.compute_BCD()
+        # bc_squareform = squareform(bc_distances)
+        # # turn the squareform array into a dataframe
+        # sf_df = BCD(dataframe=pd.DataFrame(bc_squareform))
+        if self.bc_dist is None:
+            self.bc_dist = self.compute_BCD()
 
-        return sf_df
+        if self.bc_square is None:
+            self.bc_square = squareform(self.bc_dist)
+
+        return pd.DataFrame(self.bc_square)
