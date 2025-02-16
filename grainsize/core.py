@@ -819,7 +819,7 @@ class Stratigraphy(object):
 class CoreAnalysis:
     # all methods here are static.
     @staticmethod
-    def plot_combined_stats(gs_obj, xrf_obj, core_name="Core", xrf_els=["Mg", "Fe"], gs_stats=["mean", "mode", "median"], figsize=(14, 8), marker="o", linestyle="dashed"):
+    def plot_combined_stats(gs_obj, xrf_obj, core_name="Core", ylimit=263, xrf_els=["Mg", "Fe"], gs_stats=["mean", "mode", "median"], figsize=(10, 8), marker="o", linestyle="dashed"):
         """
         Plot mode, median, and mean from GrainSize alongside selected XRF elements in separate subplots.
 
@@ -870,14 +870,18 @@ class CoreAnalysis:
             if el in xrf_obj.dataframe.columns:
                 ax.plot(xrf_obj.dataframe[el], xrf_obj.dataframe.index, label=el,
                         marker=marker, linestyle=linestyle, color=color)
+                max_concentration = xrf_obj.dataframe[el].max()
                 ax.set_title(el)
+                ax.set_xlim(0, max_concentration)
                 ax.grid(True)
-                ax.set_xlabel("Concentration")
+                ax.set_xlabel("Concentration (%)")
 
         # labels and foramtting
+        for ax in axes:
+            ax.set_ylim(0, max(depth[-1], ylimit))
+
         axes[0].set_ylabel("Depth (cm)")
         plt.gca().invert_yaxis()
-        plt.grid(True)
         plt.suptitle(f"Summary plot for {core_name}")
         plt.tight_layout()
 
