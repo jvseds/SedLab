@@ -768,62 +768,6 @@ class Stratigraphy(object):
         self.dataframe = df
         return df
 
-    # def plot_stratigraphy(self, figsize=(2.75, 18), core_name="Core", savefig=False,
-    #                       savepath="core_strat.png", dpi=350):
-    #     """
-    #
-    #     :param figsize: figure size, defaults to (2.75, 15)
-    #     :param core_name: core's name, defaults to "Core"
-    #     :param savefig: whether to save the figure, defaults to False
-    #     :param savepath: saving path
-    #     :param dpi: dpi of figure, defaults to 350
-    #     :return: matplotlib.pyplot fig and ax objects with core stratigraphic units
-    #     """
-    #
-    #     fig, ax = plt.subplots(figsize=figsize)
-    #
-    #     colors = {
-    #         'Silty Sand': '#d2b48c',  # Tan
-    #         'Silty Mud': '#8b4513',  # SaddleBrown
-    #         'Clay': '#a52a2a',  # Brown
-    #         'Sand': '#ffd700',  # Gold
-    #         'Gravel': '#808080'  # Gray
-    #     }
-    #
-    #     # iterate through dataframe's rows to plot each unit
-    #     for _, row in self.dataframe.iterrows():
-    #         color = colors[row["unit"]]
-    #         ax.fill_betweenx([row["top"], row["bottom"]], 0, 1, color=color)
-    #         mid_depth = (row["top"] + row["bottom"]) / 2
-    #         # plot symbol, if exists
-    #         if row["symbol"] is not np.nan:
-    #             ax.text(0.5, mid_depth, row["symbol"], va="center", ha="left", fontsize=10)
-    #         # plot unit label
-    #         ax.text(0.5, mid_depth, row["unit"], va="center", ha="right", fontsize=10)
-    #
-    #     # add a separating line between units
-    #     for bottom in self.dataframe["bottom"]:
-    #         ax.axhline(y=bottom, color="k", linewidth=0.5)
-    #
-    #     # add labels and formatting
-    #     # set y-axis bottom to the deepest core point
-    #     ax.set_ylim(self.dataframe["bottom"].iloc[-1], 0)
-    #     ax.set_ylabel("Depth (cm)")
-    #     ax.set_title(f"{core_name} Units")
-    #     # eliminate x-axis ticks
-    #     # ax.set_xticks([])
-    #     ax.set_xlabel("Units")
-    #     ax.xaxis.label.set_color("white")
-    #     ax.tick_params(axis="x", colors="white")
-    #     # set y-axis ticks at intervals of 20 cm
-    #     ax.yaxis.set_ticks(np.arange(self.dataframe["top"].iloc[0], self.dataframe["bottom"].iloc[-1], 20))
-    #
-    #     plt.tight_layout()
-    #
-    #     if savefig:
-    #         plt.savefig(savepath, dpi=dpi)
-    #
-    #     return fig, ax
 
     def plot_stratigraphy(self, figsize=(2.75, 18), core_name="Core", savefig=False,
                           savepath="core_strat.png", dpi=350):
@@ -868,5 +812,73 @@ class Stratigraphy(object):
 
         if savefig:
             plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax
+
+
+class CoreAnalysis:
+    # all methods here are static.
+    @staticmethod
+    def plot_combined_stats(gs_obj, xrf_obj, core_name="Core", xrf_els=["Mg", "Fe"], gs_stats=["mean", "mode", "median"], figsize=(14, 8), marker="o", linestyle="dashed"):
+        """
+        Plot mode, median, and mean from GrainSize alongside selected XRF elements in separate subplots.
+
+        :param gs_obj: GrainSize object
+        :param xrf_obj: XRF object
+        :param xrf_els: List of selected XRF elements to plot (default: ["Mg", "Fe"])
+        :param figsize: Tuple defining figure size
+        :param marker: Marker style for lines
+        :param linestyle: Line style
+        """
+
+        import matplotlib.cm as cm
+        import matplotlib.colors as mcolors
+        
+        # extract depth index
+        depth = gs_obj.dataframe.index
+
+        # define grain size statistics to plot
+        gs_stats = gs_stats
+        gs_colors = ["#913800", "#e0bb34", "#521101"]
+
+        # Generate colors dynamically for XRF elements
+        cmap = cm.get_cmap("viridis", len(xrf_els))
+        xrf_colors = [mcolors.rgb2hex(cmap(i)) for i in range(len(xrf_els))]
+
+        # total number of subplots (GS stats + selected XRF elements)
+        num_plots = len(gs_stats) + len(xrf_els)
+
+        # fig and axes
+        fig, axes = plt.subplots(nrows=1, ncols=num_plots, figsize=figsize, sharey=True)
+
+        # make `axes` iterable in any case
+        if num_plots == 1:
+            axes = [axes]
+
+        # plot GrainSize statistics
+        for ax, stat, color in zip(axes[:len(gs_stats)], gs_stats, gs_colors):
+            if stat in gs_obj.dataframe.columns:
+                ax.plot(gs_obj.dataframe[stat], depth, label=stat.capitalize(),
+                        marker=marker, linestyle=linestyle, color=color)
+                ax.set_title(stat.capitalize())
+                ax.grid(True)
+                ax.set_xlabel("Grain Size (µm)")
+
+        # plot XRF elements
+        for ax, (el, color) in zip(axes[len(gs_stats):], zip(xrf_els, xrf_colors)):
+            el = el.capitalize()
+            if el in xrf_obj.dataframe.columns:
+                ax.plot(xrf_obj.dataframe[el], xrf_obj.dataframe.index, label=el,
+                        marker=marker, linestyle=linestyle, color=color)
+                ax.set_title(el)
+                ax.grid(True)
+                ax.set_xlabel("Concentration")
+
+        # labels and foramtting
+        axes[0].set_ylabel("Depth (cm)")
+        plt.gca().invert_yaxis()
+        plt.grid(True)
+        plt.suptitle(f"Summary plot for {core_name}")
+        plt.tight_layout()
 
         return fig, ax
