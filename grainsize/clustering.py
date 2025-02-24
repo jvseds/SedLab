@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import dendrogram, linkage
 import matplotlib.pyplot as plt
+from grainsize.core import GrainSize, XRF
 
 
 class BCD(object):
@@ -36,7 +37,6 @@ class BCD(object):
                 f"'BCD' object has no attribute '{item}' because the dataframe is empty.")
 
         try:
-            # Delegate method to the DataFrame
             return getattr(self.dataframe, item)
         except AttributeError:
             raise AttributeError(
@@ -50,11 +50,11 @@ class BCD(object):
             raise ValueError(
                 "Dataframe for this BCD object is None, cannot compute distance")
 
-        # validate that all values are numeric
-        bc_matrix = self.dataframe.iloc[:, 1:].apply(
+        # validate that all values are numeric while preserving index
+        bc_matrix = self.dataframe.apply(
             pd.to_numeric, errors="coerce")
         # convert percentages to fractions between 0 and 1
-        bc_matrix = bc_matrix / 100
+        bc_matrix = bc_matrix.div(100)
 
         return bc_matrix.values
 
@@ -68,7 +68,6 @@ class BCD(object):
 
         bc_matrix = self.create_CB_matrix()
         self.bc_dist = pdist(bc_matrix, metric="braycurtis")
-        # self.bc_square = squareform(self.bc_dist)
 
         return self.bc_dist
 
@@ -76,10 +75,7 @@ class BCD(object):
         """
         Convert the computed Bray-Curtis distances into a squareform.
         """
-        # bc_distances = self.compute_BCD()
-        # bc_squareform = squareform(bc_distances)
-        # # turn the squareform array into a dataframe
-        # sf_df = BCD(dataframe=pd.DataFrame(bc_squareform))
+
         if self.bc_dist is None:
             self.bc_dist = self.compute_BCD()
 
@@ -88,22 +84,19 @@ class BCD(object):
 
         return pd.DataFrame(self.bc_square)
 
-    def plot_dendrogram(self, method="average", core_name="Core", savefig=False,
+    def plot_dendrogram(self, method="average", core_name="Core", figsize=(10, 8), savefig=False,
                         save_path="dendrogram.png", dpi=350):
         """
         Plot a dendrogram from the Bray-Curtis distances.
         """
-        # make sure the BC distances are calculated
         if self.bc_dist is None:
             self.bc_dist = self.compute_BCD()
         if self.bc_square is None:
             self.bc_square = squareform(self.bc_dist)
 
-        # calculate linkage matrix
         la_matrix = linkage(self.bc_dist, method=method)
 
-        # create the dendrogram
-        fig, ax = plt.subplots(nrows=1, figsize=(10, 8))
+        fig, ax = plt.subplots(nrows=1, figsize=figsize)
         dendrogram(la_matrix, labels=self.dataframe.index,
                    orientation="right", ax=ax)
         ax.set_xlabel("Dissimilarity")
@@ -114,3 +107,47 @@ class BCD(object):
             plt.savefig(save_path, dpi=dpi)
 
         return fig, ax
+
+    def interpolate_depth(self, new_depth=None, method="linear"):
+        """
+        Interpolate the grain size data to a new depth scale.
+        """
+        depth_col = self.dataframe.index
+
+        if new_depth is None:
+            new_depth = np.arange(depth_col.min(), depth_col.max() + 1, 1)
+
+        interpolated = pd.DataFrame(index=new_depth)
+        for col in self.dataframe.columns:
+            interpolated[col] = np.interp(
+                new_depth, depth_col, self.dataframe[col])
+
+        return interpolated
+
+    def merge_interp(self, other_BCD, new_depth=None, method="linear", core1_name="Core1", core2_name="Core2"):
+        """
+        Merge two BCD objects and interpolate the grain size data to a new depth scale.
+        """
+        if not isinstance(other_BCD, BCD):
+            raise TypeError("other_BCD must be a BCD object")
+
+        interp_self = self.interpolate_depth(
+            new_depth, method).add_prefix(f"{core1_name}_")
+        interp_other = other_BCD.interpolate_depth(
+            new_depth, method).add_prefix(f"{core2_name}_")
+        merged = interp_self.merge(
+            interp_other, left_index=True, right_index=True)
+
+        return BCD(dataframe=merged)
+
+    @classmethod
+    def from_grain_size(cls, gs_obj: GrainSize):
+        if not isinstance(gs_obj, GrainSize):
+            raise TypeError("Expected a GrainSize object")
+        return cls(dataframe=gs_obj.dataframe)
+
+    @classmethod
+    def from_xrf(cls, xrf_obj: XRF):
+        if not isinstance(xrf_obj, XRF):
+            raise TypeError("Expected an XRF object")
+        return cls(dataframe=xrf_obj.dataframe)
