@@ -1,103 +1,94 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 
 
-class Forams(object):
-
+class Forams:
     def __init__(self, dataframe=None, fname=None, size_fraction=125, volume=1.25, index_col=0, header=0):
         if dataframe is not None:
-            self.dataframe = dataframe
+            self.dataframe = dataframe.copy()
         elif fname:
             self.dataframe = pd.read_csv(
-                fname, index_col=index_col, header=header
-            )
+                fname, index_col=index_col, header=header)
         else:
             self.dataframe = None
 
         self.size_fraction = size_fraction
         self.volume = volume
 
-        # validate that the dataframe has the required columns containing planktic and benthic data
         if self.dataframe is not None:
-            has_planktic, has_benthic, has_splits = self.validate_df(self)
-            missing = []
-            if not has_planktic:
-                missing.append("planktic")
-            if not has_benthic:
-                missing.append("benthic")
-            if not has_splits:
-                missing.append("num_of_splits")
+            self.validate_df()
+            self.calc_totals()
+            self.normalize_per_1cc()
+            self.calc_pb_ratio()
+            self.calc_planktic_percents()
+
+    def __repr__(self):
+        return repr(self.dataframe) if self.dataframe is not None else "Forams object with no dataframe."
+
+    def validate_df(self):
+        required_cols = {"planktic", "benthic", "num_of_splits"}
+        missing_cols = required_cols - set(self.dataframe.columns)
+
+        if missing_cols:
             warnings.warn(
-                f"Pay Attention! Missing required column(s): {', '.join(missing)}")
+                f"Missing required column(s): {', '.join(missing_cols)}")
 
+    def calc_totals(self):
+        if self.dataframe is not None:
+            self.dataframe["total"] = self.dataframe.get(
+                "planktic", 0) + self.dataframe.get("benthic", 0)
 
-def __repr__(self):
-    if self.dataframe is not None:
-        return repr(self.dataframe)
-    return "An empty Forams object with no dataframe"
+    def normalize_per_1cc(self):
+        if self.dataframe is not None and "total" in self.dataframe.columns and "num_of_splits" in self.dataframe.columns:
+            self.dataframe["normalized_per_1cc"] = (
+                self.dataframe["total"] * self.dataframe["num_of_splits"]) / self.volume
 
+    def calc_pb_ratio(self):
+        if self.dataframe is not None:
+            self.dataframe["p/b_ratio"] = self.dataframe["planktic"] / \
+                self.dataframe["benthic"].replace(0, np.nan)
 
-def __getattr__(self, item):
-    if self.dataframe is None:
-        raise AttributeError(
-            f"`Forams` object has no attribute {item} because the dataframe is None"
-        )
+    def calc_planktic_percents(self):
+        if self.dataframe is not None and "total" in self.dataframe.columns:
+            self.dataframe["planktic_percent"] = (
+                self.dataframe["planktic"] / self.dataframe["total"].replace(0, np.nan)) * 100
+            self.dataframe["benthic_percent"] = (
+                self.dataframe["benthic"] / self.dataframe["total"].replace(0, np.nan)) * 100
 
-    try:
-        return getattr(self.dataframe, item)
-    except AttributeError:
-        raise AttributeError(
-            f"`Forams` object or its dataframe has no attribute {item}"
-        )
+    def plot_forams(self, core_name="Core", figsize=(6, 8), ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
+        if self.dataframe is None:
+            raise ValueError("No dataframe available for plotting.")
 
+        vmin = self.dataframe["planktic_percent"].min()
+        vmax = min(self.dataframe["planktic_percent"].max(
+        ), sm_limit) if limit_sm else self.dataframe["planktic_percent"].max()
 
-def validate_df(self):
-    if self.dataframe is None or self.dataframe.empty:
-        return False, False
+        norm_planktic = plt.Normalize(vmin, vmax)
+        sm = plt.cm.ScalarMappable(cmap="winter", norm=norm_planktic)
+        fig, ax = plt.subplots(figsize=figsize)
 
-    if self.dataframe is not None:
-        planktic_terms = ["planktic", "planktonic", "p", "P"]
-        benthic_terms = ["benthic", "benthonic", "b", "B"]
-        splits = ["split", "num_of_splits", "splits"]
-        df_cols = [col.lower() for col in self.dataframe.columns]
+        q3 = np.nanpercentile(self.dataframe["planktic_percent"], 75)
 
-        has_planktic = any(term.lower() in df_cols for term in planktic_terms)
-        has_benthic = any(term.lower() in df_cols for term in benthic_terms)
-        has_splits = any(term.lower() in df_cols for term in splits)
+        for depth, total, planktic in zip(self.dataframe.index, self.dataframe["total"], self.dataframe["planktic_percent"]):
+            ax.barh(depth, total, color=sm.to_rgba(planktic))
 
-    return has_planktic, has_benthic, has_splits
+            if planktic == 100 or planktic >= q3:
+                ax.text(total, depth, f"{planktic:.1f}%",
+                        va='center', ha='left', fontsize=8, color='black')
 
+        ax.set_xlim(0)
+        ax.set_ylim(0, max(ylim, self.dataframe.index[-1]))
+        ax.yaxis.set_inverted(True)
+        plt.colorbar(sm, ax=ax, label="Planktic %")
+        ax.set_title(f"Foraminifera Abundance in {core_name}")
+        ax.set_ylabel("Depth (cm)")
+        ax.set_xlabel("Individuals / 1 cc")
+        plt.grid(True)
+        plt.tight_layout()
 
-def calc_totals(self):
-    if self.dataframe is None or self.dataframe.empty:
-        return None
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
 
-    if "total" not in self.dataframe.columns:
-        self.dataframe["total"] = self.dataframe["planktic"] + \
-            self.dataframe["benthic"]
-
-
-def normalize_per_1cc(self):
-
-    total, splits = self.dataframe.columns["total"], splits = self.dataframe.columns["num_of_splits"]
-    vol = self.volume
-
-    self.dataframe["normalized_per_1cc"] = (total * splits) / vol
-
-
-def calc_pb_ratio(self):
-    if self.dataframe is None or self.dataframe.empty:
-        return None
-
-    self.dataframe["p/b_ratio"] = self.dataframe["planktic"] / \
-        self.dataframe["benthic"]
-
-
-def calc_planktic_percents(self):
-    if self.dataframe is None or self.dataframe.empty:
-        return None
-
-    self.dataframe["planktic_percent"] = (
-        self.dataframe["planktic"] / self.dataframe["total"] * 100
-    )
+        return fig, ax
