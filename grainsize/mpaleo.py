@@ -163,19 +163,20 @@ class Bryozoans:
         Calculate the correlation matrix for the bryozoan abundance categories.
         """
         corr_matrix = self.dataframe[[
-            "net", "branch", "flat", "bryo>5mm"]].corr(method=method)
+            "whole", ">2cm", "net", "branch", "flat", "bryo>5mm"]].corr(method=method)
 
         return corr_matrix
 
-    def plot_corr_matrix(self, core_name="Core", figsize=(5, 5), cmap="coolwarm",
+    def plot_corr_matrix(self, core_name="Core", method="spearman", figsize=(5, 5), cmap="coolwarm",
                          savefig=False, savepath="bryo_corr.png", dpi=350):
 
-        corr_matrix = self.calc_corr()
+        corr_matrix = self.calc_corr(method=method)
 
         fig, ax = plt.subplots(figsize=figsize)
-        sns.heatmap(data=corr_matrix, cmap=cmap,
+        sns.heatmap(data=corr_matrix, cmap=cmap, linewidths=0.5,
                     annot=True, fmt=".2f", cbar=True, ax=ax)
-        ax.set_title(f"Correlation of Bryozoan and Biomarkers in {core_name}")
+        ax.set_title(
+            f"{method} Correlation of Bryozoan and Biomarkers in {core_name}")
         plt.tight_layout()
 
         if savefig:
