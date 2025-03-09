@@ -138,6 +138,10 @@ class Bryozoans:
         for col in bryo_cols:
             table = self.create_contingency_table(other, col)
             chi2, p, dof, expected = chi2_contingency(table)
+            if (expected < 5).any():
+                warnings.warn(
+                    f"Chi-square may be invalid due to low expected frequencies in {col}. Consider Fisher's Exact Test.")
+
             chi2_results[col] = {"Chi-Squared": chi2, "p-value": p}
 
         return chi2_results
@@ -148,6 +152,10 @@ class Bryozoans:
         """
         self.validate_df()
         other.validate_df()
+
+        if len(self.dataframe[column].unique()) < 3:
+            warnings.warn(
+                "Mann-Whitney U test may not be meaningful due to few unique values in 'category'.")
 
         mw_stat, p = mannwhitneyu(
             self.dataframe[column], other.dataframe[column], alternative="two-sided")
