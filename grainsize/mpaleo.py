@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import chi2_contingency, mannwhitneyu, spearmanr
 import warnings
 
 
@@ -13,6 +15,7 @@ class Forams:
                 fname, index_col=index_col, header=header)
         else:
             self.dataframe = None
+            warnings.warn("'Forams' object created with no dataframe.")
 
         self.size_fraction = size_fraction
         self.volume = volume
@@ -92,3 +95,65 @@ class Forams:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+
+class Bryozoans:
+    def __init__(self, dataframe=None, fname=None, sheet_name=0, index_col=0, header=0):
+        if dataframe is not None:
+            self.dataframe = dataframe
+        elif fname:
+            self.dataframe = pd.read_excel(
+                io=fname, sheet_name=sheet_name, index_col=index_col, header=header)
+        else:
+            self.dataframe = None
+            warnings.warn("'Bryozoans' object created with no dataframe.")
+
+    def __repr__(self):
+        return repr(self.dataframe) if self.dataframe is not None else "Bryozoans object with no dataframe."
+
+    def validate_df(self):
+        if self.dataframe is None:
+            raise ValueError(
+                "The dataframe for this 'Bryozoans' object is empty.")
+
+    def ensure_numeric_values(self):
+        if self.dataframe is not None:
+            self.dataframe = self.dataframe.apply(
+                pd.to_numeric, errors='coerce')
+
+    def create_contingency_table(self, other, column, core1="Core1", core2="Core2"):
+
+        return pd.DataFrame({
+            f"{core1}": [self.dataframe[column].sum(), len(self.dataframe) - self.dataframe[column].sum()],
+            f"{core2}": [other.dataframe[column].sum(), len(other.dataframe) - other.dataframe[column].sum()]
+        }, index=["Present", "Absent"])
+
+    def calc_chi2(self, other):
+
+        self.validate_df()
+        other.validate_df()
+
+        chi2_results = {}
+        bryo_cols = ["net", "branch", "flat", "bryo>5mm"]
+        for col in bryo_cols:
+            table = self.create_contingency_table(other, col)
+            chi2, p, dof, expected = chi2_contingency(table)
+            chi2_results[col] = {"Chi-Squared": chi2, "p-value": p}
+
+        return chi2_results
+
+    def calc_mann_whitney(self, other, column="category"):
+        """
+        Compare the bryozoan abundance categories between two cores using the Mann-Whitney U test for two independent samples.
+        """
+        self.validate_df()
+        other.validate_df()
+
+        mw_stat, p = mannwhitneyu(
+            self.dataframe[column], other.dataframe[column], alternative="two-sided")
+        mw_results = pd.DataFrame({
+            "Mann-Whitney U": [mw_stat],
+            "p-value": [p]
+        })
+
+        return mw_results
