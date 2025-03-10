@@ -60,7 +60,7 @@ class Forams:
             self.dataframe["benthic_percent"] = (
                 self.dataframe["benthic"] / self.dataframe["total"].replace(0, np.nan)) * 100
 
-    def plot_forams(self, core_name="Core", figsize=(6, 8), ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
+    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
         if self.dataframe is None:
             raise ValueError("No dataframe available for plotting.")
 
@@ -69,7 +69,7 @@ class Forams:
         ), sm_limit) if limit_sm else self.dataframe["planktic_percent"].max()
 
         norm_planktic = plt.Normalize(vmin, vmax)
-        sm = plt.cm.ScalarMappable(cmap="winter", norm=norm_planktic)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm_planktic)
         fig, ax = plt.subplots(figsize=figsize)
 
         q3 = np.nanpercentile(self.dataframe["planktic_percent"], 75)
@@ -79,9 +79,10 @@ class Forams:
 
             if planktic == 100 or planktic >= q3:
                 ax.text(total, depth, f"{planktic:.1f}%",
-                        va='center', ha='left', fontsize=8, color='black')
+                        va='center', ha='left', fontsize=6.5, color='black')
 
         ax.set_xlim(0)
+        # TODO: set ylim to either max samples of the df or 90 quantile - ask Bev
         ax.set_ylim(0, max(ylim, self.dataframe.index[-1]))
         ax.yaxis.set_inverted(True)
         plt.colorbar(sm, ax=ax, label="Planktic %")
@@ -143,8 +144,9 @@ class Bryozoans:
                     f"Chi-square may be invalid due to low expected frequencies in {col}. Consider Fisher's Exact Test.")
 
             chi2_results[col] = {"Chi-Squared": chi2, "p-value": p}
+            chi2_df = pd.DataFrame(chi2_results)
 
-        return chi2_results
+        return chi2_df
 
     def calc_mann_whitney(self, other, column="category"):
         """
