@@ -193,3 +193,21 @@ class Bryozoans:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def plot_large_bryo(self, core_name="Core", figsize=(5, 6), palette="husl", n_colors=3,
+                        savefig=False, savepath="large_bryos.png", dpi=350):
+
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.set_palette(palette, n_colors=n_colors)
+        sns.countplot(data=self.dataframe, x="category",
+                      palette=palette, ax=ax)
+        ax.set_title(f"Large Bryozoans Category in {core_name}")
+        ax.set_xlabel("Category")
+        ax.set_ylabel("Number of samples")
+        ax.grid(True)
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax
