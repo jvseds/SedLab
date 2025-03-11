@@ -193,3 +193,45 @@ class Bryozoans:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def plot_large_bryo(self, others=[], core_names=[], figsize=(5, 6), palette="Set2", n_colors=None,
+                        savefig=False, savepath="large_bryos.png", dpi=350):
+
+        num_cores = len(others) + 1
+        fig, ax = plt.subplots(nrows=1, ncols=num_cores,
+                               figsize=figsize, sharex=True, sharey=True)
+
+        sns.set_palette(palette, n_colors=n_colors)
+        if num_cores == 1:
+            ax = [ax]
+
+        # plot the current (`self`) core
+        sns.countplot(data=self.dataframe, x="category", hue="category",
+                      palette=palette, ax=ax[0], zorder=10)
+        ax[0].set_title(f"{core_names[0]}" if core_names else "Core 1")
+        ax[0].set_ylabel("Number of samples")
+        # grid
+        ax[0].grid(axis="y", alpha=0.5, zorder=0)
+        ax[0].yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+        ax[0].set_xlabel("")
+
+        for core in range(len(others)):
+            sns.countplot(data=others[core].dataframe, x="category", hue="category",
+                          palette=palette, ax=ax[core + 1], zorder=10)
+
+            ax[core +
+                1].set_title(f"{core_names[core]}" if core_names else f"Core {core + 2}")
+            # grid
+            ax[core + 1].grid(axis="y", alpha=0.5, zorder=0)
+            ax[core + 1].yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+            ax[core + 1].set_xlabel("")
+
+        fig.supxlabel("Category")
+        fig.suptitle("Large bryozoans category".title())
+
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax
