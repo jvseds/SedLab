@@ -45,20 +45,43 @@ class Forams:
 
     def normalize_per_1cc(self):
         if self.dataframe is not None and "total" in self.dataframe.columns and "num_of_splits" in self.dataframe.columns:
+            # replace zero splits with 1 to avoid division errors
+            safe_splits = np.where(
+                self.dataframe["num_of_splits"] == 0, 1, self.dataframe["num_of_splits"])
+
             self.dataframe["normalized_per_1cc"] = (
-                self.dataframe["total"] * self.dataframe["num_of_splits"]) / self.volume
+                self.dataframe["total"] / safe_splits) / self.volume
+
+            self.dataframe["norm_benthic"] = (
+                self.dataframe["benthic"] / safe_splits) / self.volume
+
+            self.dataframe["norm_planktic"] = (
+                self.dataframe["planktic"] / safe_splits) / self.volume
 
     def calc_pb_ratio(self):
         if self.dataframe is not None:
-            self.dataframe["p/b_ratio"] = self.dataframe["planktic"] / \
-                self.dataframe["benthic"].replace(0, np.nan)
+            self.dataframe["p/b_ratio"] = np.where(
+                self.dataframe["norm_benthic"] == 0,
+                np.nan,
+                self.dataframe["norm_planktic"] /
+                self.dataframe["norm_benthic"]
+            )
 
     def calc_planktic_percents(self):
-        if self.dataframe is not None and "total" in self.dataframe.columns:
-            self.dataframe["planktic_percent"] = (
-                self.dataframe["planktic"] / self.dataframe["total"].replace(0, np.nan)) * 100
-            self.dataframe["benthic_percent"] = (
-                self.dataframe["benthic"] / self.dataframe["total"].replace(0, np.nan)) * 100
+        if self.dataframe is not None:
+            self.dataframe["planktic_percent"] = np.where(
+                self.dataframe["normalized_per_1cc"] == 0,
+                0,
+                (self.dataframe["norm_planktic"] /
+                 self.dataframe["normalized_per_1cc"]) * 100
+            )
+
+            self.dataframe["benthic_percent"] = np.where(
+                self.dataframe["normalized_per_1cc"] == 0,
+                0,
+                (self.dataframe["norm_benthic"] /
+                 self.dataframe["normalized_per_1cc"]) * 100
+            )
 
     def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
         if self.dataframe is None:
