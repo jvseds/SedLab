@@ -97,7 +97,7 @@ class Forams:
 
         q3 = np.nanpercentile(self.dataframe["planktic_percent"], 75)
 
-        for depth, total, planktic in zip(self.dataframe.index, self.dataframe["total"], self.dataframe["planktic_percent"]):
+        for depth, total, planktic in zip(self.dataframe.index, self.dataframe["normalized_per_1cc"], self.dataframe["planktic_percent"]):
             ax.barh(depth, total, color=sm.to_rgba(planktic))
 
             if planktic == 100 or planktic >= q3:
@@ -119,6 +119,72 @@ class Forams:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def compare_forams_plot(self, cores, core_names=None, figsize=(4, 8), cmap="winter",
+                            ylim=270, percentile=75, savefig=False, savepath="compare_forams.png", dpi=350,
+                            limit_sm=False, sm_limit=20):
+        """
+        Compare foram plots from multiple cores using side-by-side subplots.
+        Args:
+            cores (list): List of `Forams` objects to compare.
+            core_names (list): Optional list of core names, must match the length of `cores`.
+        """
+        n = len(cores)
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(n)]
+
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=n,
+            figsize=(figsize[0]*n, figsize[1]),
+            sharex=True,
+            sharey=True,
+            layout="constrained")
+
+        if n == 1:
+            axes = [axes]
+
+        # normalize for colormap
+        all_planktic = pd.concat(
+            [core.dataframe["planktic_percent"] for core in cores])
+        vmin = all_planktic.min()
+        vmax = min(all_planktic.max(),
+                   sm_limit) if limit_sm else all_planktic.max()
+        norm = plt.Normalize(vmin, vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+
+        # maximal abundance of forams in all cores
+        xmax = max([core.dataframe["normalized_per_1cc"].max()
+                   for core in cores])
+
+        for i, (core, ax) in enumerate(zip(cores, axes)):
+            df = core.dataframe
+            q = np.nanpercentile(df["planktic_percent"], percentile)
+
+            for depth, total, planktic in zip(df.index, df["normalized_per_1cc"], df["planktic_percent"]):
+                ax.barh(depth, total, color=sm.to_rgba(planktic))
+                if planktic == 100 or planktic >= q:
+                    ax.text(total, depth, f"{planktic:.1f}%",
+                            va='center', ha='left', fontsize=6.5, color='black')
+
+            ax.set_title(core_names[i])
+            ax.set_xlim(0, xmax)
+            ax.set_ylim(0, max(ylim, df.index[-1]))
+            ax.yaxis.set_inverted(True)
+            ax.set_xlabel("Individuals / 1 cc")
+            ax.grid(True)
+            if i == 0:
+                ax.set_ylabel("Depth (cm)")
+            else:
+                ax.set_ylabel("")
+
+        fig.colorbar(sm, ax=axes, location="right", label="Planktic %")
+        plt.suptitle("Foraminifera Abundance Comparison")
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axes
 
 
 class Bryozoans:
