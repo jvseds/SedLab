@@ -51,3 +51,8 @@ summary(model)
 ```{r marginal-effects}
 marginal_effects(model)
 ```
+
+```{r posterior-summary}
+posterior_summary(model)
+```
+
