@@ -1,0 +1,53 @@
+---
+title: "Planktic Fraction Beta Regression"
+author: "Yarden Aaltonen"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(brms)
+library(ggplot2)
+```
+
+## Load Foraminifera Data
+```{r load-data}
+df <- read_csv("./data-files/mp-files/hm_data.csv")
+df <- na.omit(df)
+# ensure all values are in (0, 1)
+epsilon <- 1e-6
+df$planktic_percent <- pmin(pmax(df$planktic_percent, epsilon), 1 - epsilon)
+str(df)
+```
+
+## Exploratory Plots
+```{r exploratory}
+ggplot(df, aes(x = planktic_percent)) +
+  geom_histogram(binwidth = 0.05, fill = "steelblue", color = "white") +
+  facet_wrap(~core)
+```
+
+## Beta Regression
+```{r beta-regression}
+model <- brm(
+  planktic_percent ~ depth + core,
+  data = df,
+  family = Beta(link = "logit"),
+  chains = 4,
+  cores = 4,
+  iter = 2000,
+  seed = 123
+  )
+```
+
+## Model Summary and Visualization
+```{r model-summary}
+summary(model)
+```
+
+```{r marginal-effects}
+marginal_effects(model)
+```
