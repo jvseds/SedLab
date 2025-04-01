@@ -186,6 +186,59 @@ class Forams:
 
         return fig, axes
 
+    def plot_benthic(self, cores, core_names=None, figsize=(4, 6), ylim=270,
+                     savefig=False, savepath="compare_benthic.png", dpi=350):
+        """
+        Plot normalized benthic foraminifera counts from multiple cores.
+
+        Args:
+            cores (list): List of `Forams` objects.
+            core_names (list): Optional list of names corresponding to the cores.
+            figsize (tuple): Size of each subplot (width, height).
+            ylim (float): Maximum depth for y-axis.
+            savefig (bool): Whether to save the figure.
+            savepath (str): Path to save the figure.
+            dpi (int): Resolution of the saved figure.
+        """
+        n = len(cores)
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(n)]
+
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=n,
+            figsize=(figsize[0]*n, figsize[1]),
+            sharex=True,
+            sharey=True,
+            layout="constrained"
+        )
+
+        if n == 1:
+            axes = [axes]
+
+        xmax = max([core.dataframe["norm_benthic"].max() for core in cores])
+
+        for i, (core, ax) in enumerate(zip(cores, axes)):
+            df = core.dataframe
+            ax.barh(df.index, df["norm_benthic"], color="tab:brown")
+            ax.set_title(core_names[i])
+            ax.set_xlim(0, xmax)
+            ax.set_ylim(0, max(ylim, df.index[-1]))
+            ax.yaxis.set_inverted(True)
+            ax.set_xlabel("Individuals / 1 cc")
+            ax.grid(True)
+            if i == 0:
+                ax.set_ylabel("Depth (cm)")
+            else:
+                ax.set_ylabel("")
+
+        plt.suptitle("Benthic Foraminifera Abundance Comparison")
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axes
+
 
 class Bryozoans:
     def __init__(self, dataframe=None, fname=None, sheet_name=0, index_col=0, header=0):
@@ -309,7 +362,7 @@ class Bryozoans:
                           palette=palette, ax=ax[core + 1], zorder=10)
 
             ax[core +
-                1].set_title(f"{core_names[core]}" if core_names else f"Core {core + 2}")
+                1].set_title(f"{core_names[core + 1]}" if core_names else f"Core {core + 2}")
             # grid
             ax[core + 1].grid(axis="y", alpha=0.5, zorder=0)
             ax[core + 1].yaxis.set_major_locator(plt.MaxNLocator(integer=True))
@@ -324,3 +377,20 @@ class Bryozoans:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def plot_bryozoan_abundance(self, core_name="Core", figsize=(4, 6), colors=[], savefig=False,
+                                savepath="bryozoan_abundance.png", dpi=350):
+        """
+        Plot the bryozoan abundance in a bar plot.
+        """
+        if self.dataframe is None:
+            raise ValueError("No dataframe available for plotting.")
+
+        fig, ax = plt.subplots(figsize=figsize)
+
+        # Create a bar plot for each category
+        for i, col in enumerate(self.dataframe.columns):
+            if colors:
+                color = colors[i % len(colors)]
+            else:
+                color = "blue"
