@@ -58,3 +58,18 @@ conditional_effects(model)
 posterior_summary(model)
 ```
 
+```{r plot-depth-effect}
+ce <- conditional_effects(model)
+
+plot(ce)[[1]] +
+  labs(x = "Depth (cm)", y = "Planktic Fraction", title = "Effects of Depth within Core on Planktic Fraction")
+```
+
+```{r plot-mean-comparison}
+plot(ce)[[2]] +
+  labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores")
+```
+
+
+
+
