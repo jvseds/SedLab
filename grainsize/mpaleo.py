@@ -378,19 +378,58 @@ class Bryozoans:
 
         return fig, ax
 
-    def plot_bryozoan_abundance(self, core_name="Core", figsize=(4, 6), colors=[], savefig=False,
-                                savepath="bryozoan_abundance.png", dpi=350):
-        """
-        Plot the bryozoan abundance in a bar plot.
-        """
-        if self.dataframe is None:
-            raise ValueError("No dataframe available for plotting.")
+    def plot_depth_bars(self, core_name="Core", figsize=(3, 10), bar_height=1.5,
+                        bar_width=0.2, colors=None, savefig=False,
+                        savepath="bryo_abundance.png", dpi=350):
 
+        self.validate_df()
+
+        if colors is None:
+            colors = {"net": "#b88c8c", "branch": "#d6c7c7", "flat": "#9fb9bf"}
+
+        features = list(colors.keys())
         fig, ax = plt.subplots(figsize=figsize)
 
-        # Create a bar plot for each category
-        for i, col in enumerate(self.dataframe.columns):
-            if colors:
-                color = colors[i % len(colors)]
-            else:
-                color = "blue"
+        categories = sorted(self.dataframe["category"].dropna().unique())
+        category_to_x = {cat: i for i, cat in enumerate(categories)}
+
+        for idx, row in self.dataframe.iterrows():
+            depth = idx
+            cat = row["category"]
+            if pd.isna(cat):
+                continue
+
+            x_center = category_to_x[cat]
+            for i, feature in enumerate(features):
+                if pd.notna(row[feature]) and row[feature] > 0:
+                    offset = (i - 1) * bar_width
+                    ax.barh(y=depth,
+                            width=bar_width,
+                            left=x_center + offset,
+                            height=bar_height,
+                            color=colors[feature],
+                            edgecolor="black",
+                            linewidth=0.2,
+                            label=feature if idx == self.dataframe.index[0] else "",
+                            zorder=3)
+
+        # Axis formatting
+        ax.set_yticks(sorted(self.dataframe.index))
+        ax.invert_yaxis()
+        ax.set_xticks(range(len(categories)))
+        ax.set_xticklabels(categories)
+        ax.set_xlabel("Category")
+        ax.set_ylabel("Depth (cm)")
+        ax.set_title(f"Bryozoan Types by Depth in {core_name}")
+        ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+
+        # Legend (deduplicated)
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        ax.legend(by_label.values(), by_label.keys(), title="Bryozoan type")
+
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax

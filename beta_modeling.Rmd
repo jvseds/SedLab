@@ -29,6 +29,8 @@ ggplot(df, aes(x = planktic_percent)) +
   facet_wrap(~core) +
   labs(x = "Planktic Fraction", y = "Number of Samples", title = "Distribution of Planktic Fraction by Core") +
   theme(plot.title = element_text(hjust = 0.5))
+
+# ggsave("plankt-distribution.png", width = 6, height = 4, dpi = 350)
 ```
 
 ## Beta Regression
@@ -63,6 +65,8 @@ ce <- conditional_effects(model)
 plot(ce)[[1]] +
   labs(x = "Depth (cm)", y = "Planktic Fraction", title = "Effects of Depth within Core on Planktic Fraction") +
   theme(plot.title = element_text(hjust = 0.5))
+
+# ggsave("plankt-depth-effect.png", width = 6, height = 4, dpi = 350)
 ```
 
 ```{r plot-mean-comparison}
@@ -74,6 +78,8 @@ ggplot(mean_plot, aes(x = core, y = estimate__, color = core)) +
   labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores") +
   theme(plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = c("#0086ac", "#03396c"))
+
+# ggsave("plankt-mean-comparison.png", width = 6, height = 4, dpi = 350)
   
 ```
 
