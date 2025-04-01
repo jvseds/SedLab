@@ -60,7 +60,8 @@ posterior_summary(model)
 ce <- conditional_effects(model)
 
 plot(ce)[[1]] +
-  labs(x = "Depth (cm)", y = "Planktic Fraction", title = "Effects of Depth within Core on Planktic Fraction")
+  labs(x = "Depth (cm)", y = "Planktic Fraction", title = "Effects of Depth within Core on Planktic Fraction") +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r plot-mean-comparison}
@@ -69,7 +70,8 @@ mean_plot <- ce[[2]]
 ggplot(mean_plot, aes(x = core, y = estimate__, color = core)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = lower__, ymax = upper__), width = 0.2) +
-  labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores")
+  labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores") +
+  theme(plot.title = element_text(hjust = 0.5))
   
 ```
 
