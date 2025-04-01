@@ -26,8 +26,10 @@ str(df)
 ## Exploratory Plots
 ```{r exploratory}
 ggplot(df, aes(x = planktic_percent)) +
-  geom_histogram(binwidth = 0.05, fill = "steelblue", color = "white") +
-  facet_wrap(~core)
+  geom_histogram(binwidth = 0.05, fill = "#6497b1", color = "white") +
+  geom_density(alpha = 0.3, color = "#03396c", linewidth = 0.72) +
+  facet_wrap(~core) +
+  labs(x = "Planktic Fraction", y = "Number of Samples")
 ```
 
 ## Beta Regression
@@ -48,8 +50,8 @@ model <- brm(
 summary(model)
 ```
 
-```{r marginal-effects}
-marginal_effects(model)
+```{r conditional-effects}
+conditional_effects(model)
 ```
 
 ```{r posterior-summary}
