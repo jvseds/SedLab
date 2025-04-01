@@ -1,9 +1,7 @@
 ---
 title: "Planktic Fraction Beta Regression"
 author: "Yarden Aaltonen"
-output:
-  html_document:
-    df_print: paged
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -26,7 +24,7 @@ str(df)
 ## Exploratory Plots
 ```{r exploratory}
 ggplot(df, aes(x = planktic_percent)) +
-  geom_histogram(binwidth = 0.05, fill = "#6497b1", color = "white") +
+  geom_histogram(binwidth = 0.05, fill = "#6497b1", color = "black") +
   geom_density(alpha = 0.3, color = "#03396c", linewidth = 0.72) +
   facet_wrap(~core) +
   labs(x = "Planktic Fraction", y = "Number of Samples")
@@ -66,10 +64,13 @@ plot(ce)[[1]] +
 ```
 
 ```{r plot-mean-comparison}
-plot(ce)[[2]] +
+mean_plot <- ce[[2]]
+
+ggplot(mean_plot, aes(x = core, y = estimate__, color = core)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = lower__, ymax = upper__), width = 0.2) +
   labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores")
+  
 ```
-
-
 
 
