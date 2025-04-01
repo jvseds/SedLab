@@ -24,10 +24,11 @@ str(df)
 ## Exploratory Plots
 ```{r exploratory}
 ggplot(df, aes(x = planktic_percent)) +
-  geom_histogram(binwidth = 0.05, fill = "#6497b1", color = "black") +
+  geom_histogram(binwidth = 0.05, fill = "#00c2c7", color = "#005582") +
   geom_density(alpha = 0.3, color = "#03396c", linewidth = 0.72) +
   facet_wrap(~core) +
-  labs(x = "Planktic Fraction", y = "Number of Samples")
+  labs(x = "Planktic Fraction", y = "Number of Samples", title = "Distribution of Planktic Fraction by Core") +
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ## Beta Regression
@@ -71,7 +72,8 @@ ggplot(mean_plot, aes(x = core, y = estimate__, color = core)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = lower__, ymax = upper__), width = 0.2) +
   labs(x = "Core", y = "Planktic Fraction", title = "Comparison of Mean Planktic Fraction between Cores") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = c("#0086ac", "#03396c"))
   
 ```
 
