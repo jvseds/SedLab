@@ -409,7 +409,7 @@ class Bryozoans:
         return fig, ax
 
     def plot_depth_bars(self, core_name="Core", figsize=(3, 10), bar_height=1.5,
-                        bar_width=0.2, colors=None, savefig=False,
+                        bar_width=0.2, ylim=265, colors=None, savefig=False,
                         savepath="bryo_abundance.png", dpi=350):
 
         self.validate_df()
@@ -448,7 +448,11 @@ class Bryozoans:
 
                     seen_labels.add(feature)
 
-        ax.set_yticks(sorted(self.dataframe.index))
+        if ylim > self.dataframe.index[-1]:
+            ax.set_ylim(0, ylim)
+        else:
+            ax.set_ylim(0, self.dataframe.index[-1] + 1)
+
         ax.invert_yaxis()
         ax.set_xticks(range(len(categories)))
         ax.set_xticklabels(categories)
