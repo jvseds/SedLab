@@ -182,7 +182,7 @@ class Forams:
                             va='center', ha='left', fontsize=6.5, color='black')
 
             ax.set_title(core_names[i])
-            # TODO: fix references
+
             if xlim:
                 ax.set_xlim(0, xlim)
 
@@ -408,7 +408,7 @@ class Bryozoans:
 
         return fig, ax
 
-    def plot_depth_bars(self, core_name="Core", figsize=(3, 10), bar_height=1.5,
+    def plot_depth_bars(self, core_name="Core", ax=None, figsize=(3, 8), bar_height=1.5,
                         bar_width=0.2, ylim=265, colors=None, savefig=False,
                         savepath="bryo_abundance.png", dpi=350):
 
@@ -418,7 +418,11 @@ class Bryozoans:
             colors = {"net": "#b88c8c", "branch": "#d6c7c7", "flat": "#9fb9bf"}
 
         features = list(colors.keys())
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, figsize=figsize)
+        else:
+            fig = ax.get_figure()
 
         categories = sorted(self.dataframe["category"].dropna().unique())
         category_to_x = {cat: i for i, cat in enumerate(categories)}
@@ -458,17 +462,61 @@ class Bryozoans:
         ax.set_xticklabels(categories)
         ax.set_xlabel("Category")
         ax.set_ylabel("Depth (cm)")
-        ax.set_title(f"Bryozoan Types by Depth in {core_name}")
+
+        if ax is None:
+            ax.set_title(f"Bryozoan Types by Depth in {core_name}")
+        else:
+            ax.set_title(f"{core_name}")
+
         ax.grid(True, axis="y", linestyle="--", alpha=0.4)
 
         handles, labels = ax.get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
 
-        fig.legend(by_label.values(), by_label.keys(),
-                   loc="outside lower center", ncol=2)
+        if ax is None:
+            fig.legend(by_label.values(), by_label.keys(),
+                       loc="outside lower center", ncol=2)
 
         plt.tight_layout()
         if savefig:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def compare_bryo_types(self, cores=None, core_names=[], figsize=(3, 8), bar_height=1.5, bar_width=0.2,
+                           ylim=265, colors=None, savefig=False, savepath="bryo_type_comparison.png", dpi=350):
+        """
+        Compare bryozoan types across multiple cores using horizontal bar plots.
+        """
+        if cores is None:
+            self.plot_depth_bars()
+            return
+
+        fig, axes = plt.subplots(nrows=1, ncols=len(cores),
+                                 figsize=(figsize[0] * len(cores), figsize[1]),
+                                 sharey=True, sharex=True)
+
+        all_handles = []
+        all_labels = []
+
+        for core, core_name, ax in zip(cores, core_names, axes):
+            core.plot_depth_bars(core_name=core_name, ax=ax, bar_height=bar_height,
+                                 bar_width=bar_width, ylim=ylim, colors=colors)
+            handles, labels = ax.get_legend_handles_labels()
+            all_handles.extend(handles)
+            all_labels.extend(labels)
+
+        fig.supxlabel("Category")
+        fig.supylabel("Depth (cm)")
+        fig.suptitle("Bryozoan Types by Depth")
+
+        # create legend
+        by_label = dict(zip(all_labels, all_handles))
+        fig.legend(by_label.values(), by_label.keys(),
+                   loc="outside lower center", ncol=2, fontsize=8)
+
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axes
