@@ -83,7 +83,8 @@ class Forams:
                  self.dataframe["normalized_per_1cc"]) * 100
             )
 
-    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
+    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, xlim=None,
+                    savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
         if self.dataframe is None:
             raise ValueError("No dataframe available for plotting.")
 
@@ -104,8 +105,21 @@ class Forams:
                 ax.text(total, depth, f"{planktic:.1f}%",
                         va='center', ha='left', fontsize=6.5, color='black')
 
-        ax.set_xlim(0)
-        # TODO: set ylim to either max samples of the df or 90 quantile - ask Bev
+        if xlim:
+            ax.set_xlim(0, xlim)
+
+            for depth, total in zip(self.dataframe.index, self.dataframe["normalized_per_1cc"]):
+                if total > xlim:
+                    ax.annotate(
+                        f"total: {total:.1f}",
+                        xy=(xlim, depth),
+                        xytext=(xlim - 35, depth),
+                        va="center",
+                        fontsize=7.5,
+                        color="#990000"
+                    )
+        else:
+            ax.set_xlim(0)
         ax.set_ylim(0, max(ylim, self.dataframe.index[-1]))
         ax.yaxis.set_inverted(True)
         plt.colorbar(sm, ax=ax, label="Planktic %")
@@ -121,7 +135,7 @@ class Forams:
         return fig, ax
 
     def compare_forams_plot(self, cores, core_names=None, figsize=(4, 8), cmap="winter",
-                            ylim=270, percentile=75, savefig=False, savepath="compare_forams.png", dpi=350,
+                            ylim=270, xlim=None, percentile=75, savefig=False, savepath="compare_forams.png", dpi=350,
                             limit_sm=False, sm_limit=20):
         """
         Compare foram plots from multiple cores using side-by-side subplots.
@@ -168,7 +182,23 @@ class Forams:
                             va='center', ha='left', fontsize=6.5, color='black')
 
             ax.set_title(core_names[i])
-            ax.set_xlim(0, xmax)
+            # TODO: fix references
+            if xlim:
+                ax.set_xlim(0, xlim)
+
+                for depth, total in zip(df.index, df["normalized_per_1cc"]):
+                    if total > xlim:
+                        ax.annotate(
+                            f"total: {total:.1f}",
+                            xy=(xlim, depth),
+                            xytext=(xlim - 35, depth),
+                            va="center",
+                            fontsize=7.5,
+                            color="#990000"
+                        )
+            else:
+                ax.set_xlim(0, xmax)
+
             ax.set_ylim(0, max(ylim, df.index[-1]))
             ax.yaxis.set_inverted(True)
             ax.set_xlabel("Individuals / 1 cc")
@@ -388,10 +418,12 @@ class Bryozoans:
             colors = {"net": "#b88c8c", "branch": "#d6c7c7", "flat": "#9fb9bf"}
 
         features = list(colors.keys())
-        fig, ax = plt.subplots(figsize=figsize)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         categories = sorted(self.dataframe["category"].dropna().unique())
         category_to_x = {cat: i for i, cat in enumerate(categories)}
+
+        seen_labels = set()
 
         for idx, row in self.dataframe.iterrows():
             depth = idx
@@ -403,6 +435,7 @@ class Bryozoans:
             for i, feature in enumerate(features):
                 if pd.notna(row[feature]) and row[feature] > 0:
                     offset = (i - 1) * bar_width
+                    label = feature if feature not in seen_labels else None
                     ax.barh(y=depth,
                             width=bar_width,
                             left=x_center + offset,
@@ -410,10 +443,11 @@ class Bryozoans:
                             color=colors[feature],
                             edgecolor="black",
                             linewidth=0.2,
-                            label=feature if idx == self.dataframe.index[0] else "",
+                            label=label,
                             zorder=3)
 
-        # Axis formatting
+                    seen_labels.add(feature)
+
         ax.set_yticks(sorted(self.dataframe.index))
         ax.invert_yaxis()
         ax.set_xticks(range(len(categories)))
@@ -423,10 +457,11 @@ class Bryozoans:
         ax.set_title(f"Bryozoan Types by Depth in {core_name}")
         ax.grid(True, axis="y", linestyle="--", alpha=0.4)
 
-        # Legend (deduplicated)
         handles, labels = ax.get_legend_handles_labels()
         by_label = dict(zip(labels, handles))
-        ax.legend(by_label.values(), by_label.keys(), title="Bryozoan type")
+
+        fig.legend(by_label.values(), by_label.keys(),
+                   loc="outside lower center", ncol=2)
 
         plt.tight_layout()
         if savefig:
