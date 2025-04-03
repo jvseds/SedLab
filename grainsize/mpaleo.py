@@ -410,7 +410,7 @@ class Bryozoans:
 
     def plot_depth_bars(self, core_name="Core", ax=None, figsize=(3, 8), bar_height=1.5,
                         bar_width=0.2, ylim=265, colors=None, savefig=False,
-                        savepath="bryo_abundance.png", dpi=350):
+                        savepath="bryo_abundance.png", dpi=350, categories=None):
 
         self.validate_df()
 
@@ -424,7 +424,8 @@ class Bryozoans:
         else:
             fig = ax.get_figure()
 
-        categories = sorted(self.dataframe["category"].dropna().unique())
+        if categories is None:
+            categories = sorted(self.dataframe["category"].dropna().unique())
         category_to_x = {cat: i for i, cat in enumerate(categories)}
 
         seen_labels = set()
@@ -460,11 +461,11 @@ class Bryozoans:
         ax.invert_yaxis()
         ax.set_xticks(range(len(categories)))
         ax.set_xticklabels(categories)
-        ax.set_xlabel("Category")
-        ax.set_ylabel("Depth (cm)")
 
         if ax is None:
             ax.set_title(f"Bryozoan Types by Depth in {core_name}")
+            ax.set_xlabel("Category")
+            ax.set_ylabel("Depth (cm)")
         else:
             ax.set_title(f"{core_name}")
 
@@ -499,9 +500,14 @@ class Bryozoans:
         all_handles = []
         all_labels = []
 
+        all_cats = set()
+        for core in cores:
+            all_cats.update(core.dataframe["category"].dropna().unique())
+        all_categories = sorted(all_cats)
+
         for core, core_name, ax in zip(cores, core_names, axes):
             core.plot_depth_bars(core_name=core_name, ax=ax, bar_height=bar_height,
-                                 bar_width=bar_width, ylim=ylim, colors=colors)
+                                 bar_width=bar_width, ylim=ylim, colors=colors, categories=all_categories)
             handles, labels = ax.get_legend_handles_labels()
             all_handles.extend(handles)
             all_labels.extend(labels)
@@ -512,8 +518,14 @@ class Bryozoans:
 
         # create legend
         by_label = dict(zip(all_labels, all_handles))
-        fig.legend(by_label.values(), by_label.keys(),
-                   loc="outside lower center", ncol=2, fontsize=8)
+        fig.legend(
+            by_label.values(), by_label.keys(),
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.02),
+            ncol=len(by_label),
+            frameon=True,
+            fontsize=8
+        )
 
         plt.tight_layout()
         if savefig:
