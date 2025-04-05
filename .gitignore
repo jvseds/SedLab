@@ -3,3 +3,8 @@
 *.png
 *.jpg
 *.pdf
+.Rhistory
+.RData
+.Rproj.user/
+*.stan
+*.rds
