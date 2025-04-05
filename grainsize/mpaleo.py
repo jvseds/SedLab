@@ -216,8 +216,8 @@ class Forams:
 
         return fig, axes
 
-    def plot_benthic(self, cores, core_names=None, figsize=(4, 6), ylim=270,
-                     savefig=False, savepath="compare_benthic.png", dpi=350):
+    def plot_benthic(self, cores, core_names=None, figsize=(3, 6), ylim=270, color="#854442",
+                     xlim=None, savefig=False, savepath="compare_benthic.png", dpi=350):
         """
         Plot normalized benthic foraminifera counts from multiple cores.
 
@@ -250,9 +250,25 @@ class Forams:
 
         for i, (core, ax) in enumerate(zip(cores, axes)):
             df = core.dataframe
-            ax.barh(df.index, df["norm_benthic"], color="tab:brown")
+            ax.barh(df.index, df["norm_benthic"], color=color)
             ax.set_title(core_names[i])
-            ax.set_xlim(0, xmax)
+            # if forams abundance exceeds given xlim, annotate the bar
+            if xlim:
+                ax.set_xlim(0, xlim)
+
+                for depth, total in zip(df.index, df["normalized_per_1cc"]):
+                    if total > xlim:
+                        ax.annotate(
+                            f"total: {total:.1f}",
+                            xy=(xlim, depth),
+                            xytext=(xlim - 100, depth),
+                            va="center",
+                            fontsize=7.5,
+                            color="#4b3832"
+                        )
+            else:
+                ax.set_xlim(0, xmax)
+
             ax.set_ylim(0, max(ylim, df.index[-1]))
             ax.yaxis.set_inverted(True)
             ax.set_xlabel("Individuals / 1 cc")
@@ -521,17 +537,26 @@ class Bryozoans:
         fig.suptitle("Bryozoan Types by Depth")
 
         # create legend
-        by_label = dict(zip(all_labels, all_handles))
+        by_label = {}
+        label_map = {"flat": "F", "net": "N", "branch": "B"}
+        for handle, label in zip(all_handles, all_labels):
+            short_label = label_map.get(label, label)
+            if short_label not in by_label:
+                by_label[short_label] = handle
+
+        fig.subplots_adjust(left=0.2)
+
         fig.legend(
-            by_label.values(), by_label.keys(),
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.02),
-            ncol=len(by_label),
+            by_label.values(),
+            by_label.keys(),
+            loc="center left",
+            bbox_to_anchor=(1.01, 0.5),
             frameon=True,
             fontsize=8
         )
 
         plt.tight_layout()
+
         if savefig:
             plt.savefig(savepath, dpi=dpi)
 
