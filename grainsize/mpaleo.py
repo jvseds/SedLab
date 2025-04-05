@@ -414,8 +414,12 @@ class Bryozoans:
 
         self.validate_df()
 
+        bryo_type = ["net", "branch", "flat"]
+
         if colors is None:
             colors = {"net": "#b88c8c", "branch": "#d6c7c7", "flat": "#9fb9bf"}
+        else:
+            colors = {k: v for k, v in zip(bryo_type, colors)}
 
         features = list(colors.keys())
 
