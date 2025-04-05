@@ -83,7 +83,8 @@ class Forams:
                  self.dataframe["normalized_per_1cc"]) * 100
             )
 
-    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
+    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, xlim=None,
+                    savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
         if self.dataframe is None:
             raise ValueError("No dataframe available for plotting.")
 
@@ -104,8 +105,21 @@ class Forams:
                 ax.text(total, depth, f"{planktic:.1f}%",
                         va='center', ha='left', fontsize=6.5, color='black')
 
-        ax.set_xlim(0)
-        # TODO: set ylim to either max samples of the df or 90 quantile - ask Bev
+        if xlim:
+            ax.set_xlim(0, xlim)
+
+            for depth, total in zip(self.dataframe.index, self.dataframe["normalized_per_1cc"]):
+                if total > xlim:
+                    ax.annotate(
+                        f"total: {total:.1f}",
+                        xy=(xlim, depth),
+                        xytext=(xlim - 35, depth),
+                        va="center",
+                        fontsize=7.5,
+                        color="#990000"
+                    )
+        else:
+            ax.set_xlim(0)
         ax.set_ylim(0, max(ylim, self.dataframe.index[-1]))
         ax.yaxis.set_inverted(True)
         plt.colorbar(sm, ax=ax, label="Planktic %")
@@ -121,7 +135,7 @@ class Forams:
         return fig, ax
 
     def compare_forams_plot(self, cores, core_names=None, figsize=(4, 8), cmap="winter",
-                            ylim=270, percentile=75, savefig=False, savepath="compare_forams.png", dpi=350,
+                            ylim=270, xlim=None, percentile=75, savefig=False, savepath="compare_forams.png", dpi=350,
                             limit_sm=False, sm_limit=20):
         """
         Compare foram plots from multiple cores using side-by-side subplots.
@@ -168,7 +182,23 @@ class Forams:
                             va='center', ha='left', fontsize=6.5, color='black')
 
             ax.set_title(core_names[i])
-            ax.set_xlim(0, xmax)
+
+            if xlim:
+                ax.set_xlim(0, xlim)
+
+                for depth, total in zip(df.index, df["normalized_per_1cc"]):
+                    if total > xlim:
+                        ax.annotate(
+                            f"total: {total:.1f}",
+                            xy=(xlim, depth),
+                            xytext=(xlim - 35, depth),
+                            va="center",
+                            fontsize=7.5,
+                            color="#990000"
+                        )
+            else:
+                ax.set_xlim(0, xmax)
+
             ax.set_ylim(0, max(ylim, df.index[-1]))
             ax.yaxis.set_inverted(True)
             ax.set_xlabel("Individuals / 1 cc")
@@ -180,6 +210,75 @@ class Forams:
 
         fig.colorbar(sm, ax=axes, location="right", label="Planktic %")
         plt.suptitle("Foraminifera Abundance Comparison")
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axes
+
+    def plot_benthic(self, cores, core_names=None, figsize=(3, 6), ylim=270, color="#854442",
+                     xlim=None, savefig=False, savepath="compare_benthic.png", dpi=350):
+        """
+        Plot normalized benthic foraminifera counts from multiple cores.
+
+        Args:
+            cores (list): List of `Forams` objects.
+            core_names (list): Optional list of names corresponding to the cores.
+            figsize (tuple): Size of each subplot (width, height).
+            ylim (float): Maximum depth for y-axis.
+            savefig (bool): Whether to save the figure.
+            savepath (str): Path to save the figure.
+            dpi (int): Resolution of the saved figure.
+        """
+        n = len(cores)
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(n)]
+
+        fig, axes = plt.subplots(
+            nrows=1,
+            ncols=n,
+            figsize=(figsize[0]*n, figsize[1]),
+            sharex=True,
+            sharey=True,
+            layout="constrained"
+        )
+
+        if n == 1:
+            axes = [axes]
+
+        xmax = max([core.dataframe["norm_benthic"].max() for core in cores])
+
+        for i, (core, ax) in enumerate(zip(cores, axes)):
+            df = core.dataframe
+            ax.barh(df.index, df["norm_benthic"], color=color)
+            ax.set_title(core_names[i])
+            # if forams abundance exceeds given xlim, annotate the bar
+            if xlim:
+                ax.set_xlim(0, xlim)
+
+                for depth, total in zip(df.index, df["normalized_per_1cc"]):
+                    if total > xlim:
+                        ax.annotate(
+                            f"total: {total:.1f}",
+                            xy=(xlim, depth),
+                            xytext=(xlim - 100, depth),
+                            va="center",
+                            fontsize=7.5,
+                            color="#4b3832"
+                        )
+            else:
+                ax.set_xlim(0, xmax)
+
+            ax.set_ylim(0, max(ylim, df.index[-1]))
+            ax.yaxis.set_inverted(True)
+            ax.set_xlabel("Individuals / 1 cc")
+            ax.grid(True)
+            if i == 0:
+                ax.set_ylabel("Depth (cm)")
+            else:
+                ax.set_ylabel("")
+
+        plt.suptitle("Benthic Foraminifera Abundance Comparison")
 
         if savefig:
             plt.savefig(savepath, dpi=dpi)
@@ -309,7 +408,7 @@ class Bryozoans:
                           palette=palette, ax=ax[core + 1], zorder=10)
 
             ax[core +
-                1].set_title(f"{core_names[core]}" if core_names else f"Core {core + 2}")
+                1].set_title(f"{core_names[core + 1]}" if core_names else f"Core {core + 2}")
             # grid
             ax[core + 1].grid(axis="y", alpha=0.5, zorder=0)
             ax[core + 1].yaxis.set_major_locator(plt.MaxNLocator(integer=True))
@@ -324,3 +423,141 @@ class Bryozoans:
             plt.savefig(savepath, dpi=dpi)
 
         return fig, ax
+
+    def plot_depth_bars(self, core_name="Core", ax=None, figsize=(3, 8), bar_height=1.5,
+                        bar_width=0.2, ylim=265, colors=None, savefig=False,
+                        savepath="bryo_abundance.png", dpi=350, categories=None):
+
+        self.validate_df()
+
+        bryo_type = ["net", "branch", "flat"]
+
+        if colors is None:
+            colors = {"net": "#b88c8c", "branch": "#d6c7c7", "flat": "#9fb9bf"}
+        else:
+            colors = {k: v for k, v in zip(bryo_type, colors)}
+
+        features = list(colors.keys())
+
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, figsize=figsize)
+        else:
+            fig = ax.get_figure()
+
+        if categories is None:
+            categories = sorted(self.dataframe["category"].dropna().unique())
+        category_to_x = {cat: i for i, cat in enumerate(categories)}
+
+        seen_labels = set()
+
+        for idx, row in self.dataframe.iterrows():
+            depth = idx
+            cat = row["category"]
+            if pd.isna(cat):
+                continue
+
+            x_center = category_to_x[cat]
+            for i, feature in enumerate(features):
+                if pd.notna(row[feature]) and row[feature] > 0:
+                    offset = (i - 1) * bar_width
+                    label = feature if feature not in seen_labels else None
+                    ax.barh(y=depth,
+                            width=bar_width,
+                            left=x_center + offset,
+                            height=bar_height,
+                            color=colors[feature],
+                            edgecolor="black",
+                            linewidth=0.2,
+                            label=label,
+                            zorder=3)
+
+                    seen_labels.add(feature)
+
+        if ylim > self.dataframe.index[-1]:
+            ax.set_ylim(0, ylim)
+        else:
+            ax.set_ylim(0, self.dataframe.index[-1] + 1)
+
+        ax.invert_yaxis()
+        ax.set_xticks(range(len(categories)))
+        ax.set_xticklabels(categories)
+
+        if ax is None:
+            ax.set_title(f"Bryozoan Types by Depth in {core_name}")
+            ax.set_xlabel("Category")
+            ax.set_ylabel("Depth (cm)")
+        else:
+            ax.set_title(f"{core_name}")
+
+        ax.grid(True, axis="y", linestyle="--", alpha=0.4)
+
+        handles, labels = ax.get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+
+        if ax is None:
+            fig.legend(by_label.values(), by_label.keys(),
+                       loc="outside lower center", ncol=2)
+
+        plt.tight_layout()
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax
+
+    def compare_bryo_types(self, cores=None, core_names=[], figsize=(3, 8), bar_height=1.5, bar_width=0.2,
+                           ylim=265, colors=None, savefig=False, savepath="bryo_type_comparison.png", dpi=350):
+        """
+        Compare bryozoan types across multiple cores using horizontal bar plots.
+        """
+        if cores is None:
+            self.plot_depth_bars()
+            return
+
+        fig, axes = plt.subplots(nrows=1, ncols=len(cores),
+                                 figsize=(figsize[0] * len(cores), figsize[1]),
+                                 sharey=True, sharex=True)
+
+        all_handles = []
+        all_labels = []
+
+        all_cats = set()
+        for core in cores:
+            all_cats.update(core.dataframe["category"].dropna().unique())
+        all_categories = sorted(all_cats)
+
+        for core, core_name, ax in zip(cores, core_names, axes):
+            core.plot_depth_bars(core_name=core_name, ax=ax, bar_height=bar_height,
+                                 bar_width=bar_width, ylim=ylim, colors=colors, categories=all_categories)
+            handles, labels = ax.get_legend_handles_labels()
+            all_handles.extend(handles)
+            all_labels.extend(labels)
+
+        fig.supxlabel("Category")
+        fig.supylabel("Depth (cm)")
+        fig.suptitle("Bryozoan Types by Depth")
+
+        # create legend
+        by_label = {}
+        label_map = {"flat": "F", "net": "N", "branch": "B"}
+        for handle, label in zip(all_handles, all_labels):
+            short_label = label_map.get(label, label)
+            if short_label not in by_label:
+                by_label[short_label] = handle
+
+        fig.subplots_adjust(left=0.2)
+
+        fig.legend(
+            by_label.values(),
+            by_label.keys(),
+            loc="center left",
+            bbox_to_anchor=(1.01, 0.5),
+            frameon=True,
+            fontsize=8
+        )
+
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axes
