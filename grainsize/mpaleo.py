@@ -101,10 +101,20 @@ class Forams:
         for depth, total, planktic in zip(self.dataframe.index, self.dataframe["normalized_per_1cc"], self.dataframe["planktic_percent"]):
             ax.barh(depth, total, color=sm.to_rgba(planktic))
 
+            # annotate the bar with planktic percentage if it is 100% or above the 75th percentile
             if planktic == 100 or planktic >= q3:
-                ax.text(total, depth, f"{planktic:.1f}%",
-                        va='center', ha='left', fontsize=6.5, color='black')
+                label = f"{planktic:.1f}%"
+                ax.text(
+                    total,
+                    depth,
+                    label,
+                    va="center",
+                    ha="left",
+                    fontsize=6.5,
+                    color="black",
+                )
 
+        # total abundance annotation
         if xlim:
             ax.set_xlim(0, xlim)
 
@@ -113,9 +123,7 @@ class Forams:
                     ax.annotate(
                         f"total: {total:.1f}",
                         xy=(xlim / 2, depth),
-                        # xytext=(xlim - 35, depth),
                         va="center",
-                        ha="center",
                         fontsize=7.5,
                         color="#990000"
                     )
@@ -179,8 +187,15 @@ class Forams:
             for depth, total, planktic in zip(df.index, df["normalized_per_1cc"], df["planktic_percent"]):
                 ax.barh(depth, total, color=sm.to_rgba(planktic))
                 if planktic == 100 or planktic >= q:
-                    ax.text(total, depth, f"{planktic:.1f}%",
-                            va='center', ha='left', fontsize=6.5, color='black')
+                    ax.text(
+                        total,
+                        depth,
+                        f"{planktic:.1f}%",
+                        va="center",
+                        ha="right",
+                        fontsize=6.5,
+                        color="black"
+                    )
 
             ax.set_title(core_names[i])
 
