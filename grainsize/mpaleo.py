@@ -104,15 +104,26 @@ class Forams:
             # annotate the bar with planktic percentage if it is 100% or above the 75th percentile
             if planktic == 100 or planktic >= q3:
                 label = f"{planktic:.1f}%"
-                ax.text(
-                    total,
-                    depth,
-                    label,
-                    va="center",
-                    ha="left",
-                    fontsize=6.5,
-                    color="black",
-                )
+                if xlim:
+                    ax.text(
+                        min(total, xlim - 15),
+                        depth,
+                        label,
+                        va="center",
+                        ha="left",
+                        fontsize=6.5,
+                        color="black",
+                    )
+                else:
+                    ax.text(
+                        total,
+                        depth,
+                        label,
+                        va="center",
+                        ha="left",
+                        fontsize=6.5,
+                        color="black",
+                    )
 
         # total abundance annotation
         if xlim:
@@ -187,15 +198,27 @@ class Forams:
             for depth, total, planktic in zip(df.index, df["normalized_per_1cc"], df["planktic_percent"]):
                 ax.barh(depth, total, color=sm.to_rgba(planktic))
                 if planktic == 100 or planktic >= q:
-                    ax.text(
-                        total,
-                        depth,
-                        f"{planktic:.1f}%",
-                        va="center",
-                        ha="right",
-                        fontsize=6.5,
-                        color="black"
-                    )
+                    label = f"{planktic:.1f}%"
+                    if xlim:
+                        ax.text(
+                            min(total, xlim - 15),
+                            depth,
+                            label,
+                            va="center",
+                            ha="left",
+                            fontsize=6.5,
+                            color="black",
+                        )
+                    else:
+                        ax.text(
+                            total,
+                            depth,
+                            label,
+                            va="center",
+                            ha="left",
+                            fontsize=6.5,
+                            color="black",
+                        )
 
             ax.set_title(core_names[i])
 
