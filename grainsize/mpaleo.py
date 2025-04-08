@@ -50,13 +50,13 @@ class Forams:
                 self.dataframe["num_of_splits"] == 0, 1, self.dataframe["num_of_splits"])
 
             self.dataframe["normalized_per_1cc"] = (
-                self.dataframe["total"] / safe_splits) / self.volume
+                self.dataframe["total"] * safe_splits) / self.volume
 
             self.dataframe["norm_benthic"] = (
-                self.dataframe["benthic"] / safe_splits) / self.volume
+                self.dataframe["benthic"] * safe_splits) / self.volume
 
             self.dataframe["norm_planktic"] = (
-                self.dataframe["planktic"] / safe_splits) / self.volume
+                self.dataframe["planktic"] * safe_splits) / self.volume
 
     def calc_pb_ratio(self):
         if self.dataframe is not None:
@@ -112,9 +112,10 @@ class Forams:
                 if total > xlim:
                     ax.annotate(
                         f"total: {total:.1f}",
-                        xy=(xlim, depth),
-                        xytext=(xlim - 35, depth),
+                        xy=(xlim / 2, depth),
+                        # xytext=(xlim - 35, depth),
                         va="center",
+                        ha="center",
                         fontsize=7.5,
                         color="#990000"
                     )
@@ -190,8 +191,7 @@ class Forams:
                     if total > xlim:
                         ax.annotate(
                             f"total: {total:.1f}",
-                            xy=(xlim, depth),
-                            xytext=(xlim - 35, depth),
+                            xy=(xlim / 2, depth),
                             va="center",
                             fontsize=7.5,
                             color="#990000"
@@ -260,8 +260,7 @@ class Forams:
                     if total > xlim:
                         ax.annotate(
                             f"total: {total:.1f}",
-                            xy=(xlim, depth),
-                            xytext=(xlim - 100, depth),
+                            xy=(xlim / 2, depth),
                             va="center",
                             fontsize=7.5,
                             color="#4b3832"
