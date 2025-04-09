@@ -463,7 +463,7 @@ class GrainSize(object):
         ax_percentage.set_xlabel("Percentage (%)")
         ax_percentage.set_title("< 63 µm")
         ax_percentage.set_xlim(0, 100)
-        # ---- ATTENTION! UNDER CHANGE ----
+
         ax_percentage.set_ylim(0, self.dataframe.index[-1])
         ax_percentage.grid(True)
 
