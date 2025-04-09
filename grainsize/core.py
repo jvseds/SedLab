@@ -484,6 +484,94 @@ class GrainSize(object):
 
         return fig, axes
 
+    @staticmethod
+    def compare_gs(cores: list,
+                   core_names: list = None,
+                   fine_col="total",
+                   figsize_per_plot=(2, 6),
+                   marker="o",
+                   linestyle="dashed",
+                   save_fig=False,
+                   fpath="compare_gs_grid.png",
+                   dpi=350):
+        """
+        Compare cores in a subplot grid with 1 row per core, and 4 columns (median, mode, mean, <63 µm).
+
+        :param cores: list of GrainSize objects
+        :param core_names: optional list of names for the cores
+        :param fine_col: column name for < 63 µm
+        :param figsize_per_plot: size of each subplot (width, height)
+        :param marker: marker style
+        :param linestyle: line style
+        :param save_fig: whether to save the plot
+        :param fpath: path to save
+        :param dpi: resolution
+        :return: fig, axes
+        """
+
+        for i, core in enumerate(cores):
+            if not isinstance(core, GrainSize):
+                raise TypeError(
+                    f"Item at index {i} is not a GrainSize object.")
+
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(len(cores))]
+
+        n_cores = len(cores)
+        stats_labels = ["median", "mode", "mean", "< 63 µm"]
+        colors = ["#e0bb34", "#913800", "#521101", "#0da818"]
+
+        # Determine global y-axis range
+        max_depth = max(core.dataframe.index.max() for core in cores)
+
+        # Total figure size
+        figsize = (figsize_per_plot[0] * 4, figsize_per_plot[1] * n_cores)
+        fig, axes = plt.subplots(
+            nrows=n_cores, ncols=4,
+            figsize=figsize,
+            sharey=True,
+            squeeze=False
+        )
+
+        for row_idx, (core, name) in enumerate(zip(cores, core_names)):
+            for col_idx, (label, color) in enumerate(zip(stats_labels, colors)):
+                ax = axes[row_idx, col_idx]
+                data_col = fine_col if label == "< 63 µm" else label
+
+                if data_col in core.dataframe.columns:
+                    ax.plot(core.dataframe[data_col], core.dataframe.index,
+                            marker=marker, linestyle=linestyle, color=color, linewidth=0.85)
+
+                if row_idx == 0:
+                    ax.set_title(label)
+
+                if col_idx == 0:
+                    ax.set_ylabel(f"{name}\nDepth (cm)")
+                    yticks = np.arange(0, max_depth + 1, 50)
+                    ax.set_yticks(yticks)
+                    ax.set_yticklabels([str(int(y)) for y in yticks])
+                    ax.tick_params(axis='y', labelsize=8)
+                else:
+                    ax.set_yticklabels([])
+
+                if row_idx == n_cores - 1:
+                    if label == "< 63 µm":
+                        ax.set_xlabel("Percentage (%)")
+                    else:
+                        ax.set_xlabel("Grain size (µm)")
+
+                ax.set_ylim(0, max_depth)
+                ax.invert_yaxis()
+                ax.grid(True)
+
+        fig.suptitle("Grain Size Comparison by Core")
+        fig.tight_layout(rect=[0, 0, 1, 0.96])
+
+        if save_fig:
+            plt.savefig(fpath, dpi=dpi)
+
+        return fig, axes
+
 
 class XRF(object):
 
