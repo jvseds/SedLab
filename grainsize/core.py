@@ -1,4 +1,3 @@
-# building a GrainSize class based on functions
 import re
 from typing import Any
 
@@ -11,11 +10,9 @@ from pandas.io.parsers import TextFileReader
 import copy
 
 
-# define a GrainSize class
 class GrainSize(object):
 
     def __init__(self, fname=None, sheet_name="raw_data", skiprows=1, dataframe=None):
-        # complete more attributes as needed
         self.dataframe = None
         if dataframe is not None:
             self.dataframe = dataframe
@@ -31,7 +28,6 @@ class GrainSize(object):
         """Delegate to the DataFrame class for methods that are
         not defined in this class."""
         if not hasattr(self, 'dataframe'):
-            # Prevent recursion if 'dataframe' doesn't exist yet
             raise AttributeError(
                 f"'GrainSize' object has no attribute '{item}'")
         try:
@@ -135,9 +131,6 @@ class GrainSize(object):
         self.drop_redun()
         # set index to grain_size column
         self.set_gs_index()
-
-        # get sample depths within the core - maybe unnecessary
-        # depths = self.get_depths()
 
         # rename column headers
         self.rename_headers()
@@ -450,7 +443,6 @@ class GrainSize(object):
             ax.plot(self.dataframe[stat], self.dataframe.index, marker=marker,
                     linestyle=linestyle, linewidth=0.85, color=color)
             ax.set_title(f"{stat.capitalize()}")
-            # ---- ATTENTION! UNDER CHANGE ----
             ax.set_ylim(0, self.dataframe.index[-1])
             # show grid
             ax.grid(True)
@@ -463,24 +455,119 @@ class GrainSize(object):
         ax_percentage.set_xlabel("Percentage (%)")
         ax_percentage.set_title("< 63 µm")
         ax_percentage.set_xlim(0, 100)
-        # ---- ATTENTION! UNDER CHANGE ----
+
         ax_percentage.set_ylim(0, self.dataframe.index[-1])
         ax_percentage.grid(True)
 
         # set for all axes
         axes[0].set_ylabel("Depth (cm)")
-        # set y-axis limits from 0 cm to end of core
         axes[0].set_ylim(0, self.dataframe.index[-1])
-        # invert the y-axis
         plt.gca().invert_yaxis()
-        # add a suptitle with core's name
         plt.suptitle(f"{core_name} Grain Size Distribution Statistics")
 
         plt.tight_layout()
 
-        # if save_fig=True, save to fpath:
         if save_fig:
             plt.savefig(fpath, dpi=dpi, bbox_inches="tight")
+
+        return fig, axes
+
+    @staticmethod
+    def compare_gs(cores: list,
+                   core_names: list = None,
+                   fine_col="total",
+                   figsize_per_plot=(1.5, 8),
+                   marker=".",
+                   linestyle="dashed",
+                   save_fig=False,
+                   fpath="compare_gs_grid.png",
+                   dpi=350):
+        """
+        Compare cores in a subplot grid with 1 row per core, and 4 columns (median, mode, mean, <63 µm).
+
+        :param cores: list of GrainSize objects
+        :param core_names: optional list of names for the cores
+        :param fine_col: column name for < 63 µm
+        :param figsize_per_plot: size of each subplot (width, height)
+        :param marker: marker style
+        :param linestyle: line style
+        :param save_fig: whether to save the plot
+        :param fpath: path to save
+        :param dpi: resolution
+        :return: fig, axes
+        """
+
+        for i, core in enumerate(cores):
+            if not isinstance(core, GrainSize):
+                raise TypeError(
+                    f"Item at index {i} is not a GrainSize object.")
+
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(len(cores))]
+
+        n_cores = len(cores)
+        stats_labels = ["median", "mode", "mean", "< 63 µm"]
+        colors = ["#e0bb34", "#913800", "#521101", "#0da818"]
+
+        # find maximal depth between the cores
+        max_depth = max(core.dataframe.index.max() for core in cores)
+
+        # total figure size
+        figsize = (figsize_per_plot[0] * 4, figsize_per_plot[1] * n_cores)
+        fig, axes = plt.subplots(
+            nrows=n_cores, ncols=4,
+            figsize=figsize,
+            sharey=True,
+            squeeze=False
+        )
+
+        for row_idx, (core, name) in enumerate(zip(cores, core_names)):
+            for col_idx, (label, color) in enumerate(zip(stats_labels, colors)):
+                ax = axes[row_idx, col_idx]
+                data_col = fine_col if label == "< 63 µm" else label
+
+                if data_col in core.dataframe.columns:
+                    ax.plot(core.dataframe[data_col], core.dataframe.index,
+                            marker=marker, linestyle=linestyle, color=color, linewidth=0.85)
+
+                if row_idx == 0:
+                    ax.set_title(label)
+
+                if label == "< 63 µm":
+                    ax.set_xlim(0, 100)
+                else:
+                    ax.set_xlim(-0.5, core.dataframe[data_col].max() + 1)
+
+                ax.set_ylim(0, max_depth)
+                ax.invert_yaxis()
+
+                if col_idx == 0:
+                    ax.set_ylabel(f"{name}\nDepth (cm)")
+                    yticks = np.arange(0, max_depth + 1, 50)
+                    ax.set_yticks(yticks)
+                    ax.set_yticklabels([str(int(y)) for y in yticks])
+                    ax.tick_params(axis='y', labelsize=8, labelleft=True)
+                else:
+                    ax.tick_params(axis='y', labelleft=False)
+
+                if row_idx == n_cores - 1:
+                    if label == "< 63 µm":
+                        ax.set_xlabel("Percentage (%)")
+                    else:
+                        ax.set_xlabel("Grain size (µm)")
+
+                # plot a horizontal line if core is shorter than max_depth
+                if max_depth > core.dataframe.index[-1]:
+                    ax.axhline(
+                        y=core.dataframe.index[-1], color='red', linestyle='--', linewidth=0.3, alpha=0.5)
+
+                ax.grid(True)
+
+        fig.suptitle("Grain Size Comparison by Core")
+        fig.tight_layout()
+
+        if save_fig:
+            plt.savefig(fpath, dpi=dpi)
 
         return fig, axes
 
