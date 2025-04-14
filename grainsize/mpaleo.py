@@ -83,7 +83,7 @@ class Forams:
                  self.dataframe["normalized_per_1cc"]) * 100
             )
 
-    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, xlim=None,
+    def plot_forams(self, core_name="Core", figsize=(6, 8), cmap="winter", ylim=270, xlim=None, percentile=90,
                     savefig=False, savepath="forams.png", dpi=350, limit_sm=False, sm_limit=20):
         if self.dataframe is None:
             raise ValueError("No dataframe available for plotting.")
@@ -96,13 +96,14 @@ class Forams:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm_planktic)
         fig, ax = plt.subplots(figsize=figsize)
 
-        q3 = np.nanpercentile(self.dataframe["planktic_percent"], 75)
+        q_percentile = np.nanpercentile(
+            self.dataframe["planktic_percent"], percentile)
 
         for depth, total, planktic in zip(self.dataframe.index, self.dataframe["normalized_per_1cc"], self.dataframe["planktic_percent"]):
             ax.barh(depth, total, color=sm.to_rgba(planktic))
 
-            # annotate the bar with planktic percentage if it is 100% or above the 75th percentile
-            if planktic == 100 or planktic >= q3:
+            # annotate the bar with planktic percentage if it is 100% or above a given percentile
+            if planktic == 100 or planktic >= q_percentile:
                 label = f"{planktic:.1f}%"
                 if xlim:
                     ax.text(
@@ -294,10 +295,10 @@ class Forams:
             if xlim:
                 ax.set_xlim(0, xlim)
 
-                for depth, total in zip(df.index, df["normalized_per_1cc"]):
-                    if total > xlim:
+                for depth, benthic in zip(df.index, df["norm_benthic"]):
+                    if benthic > xlim:
                         ax.annotate(
-                            f"total: {total:.1f}",
+                            f"total: {benthic:.1f}",
                             xy=(xlim / 2, depth),
                             va="center",
                             fontsize=7.5,
@@ -308,7 +309,7 @@ class Forams:
 
             ax.set_ylim(0, max(ylim, df.index[-1]))
             ax.yaxis.set_inverted(True)
-            ax.set_xlabel("Individuals / 1 cc")
+            ax.set_xlabel("Benthic individuals / 1 cc")
             ax.grid(True)
             if i == 0:
                 ax.set_ylabel("Depth (cm)")
