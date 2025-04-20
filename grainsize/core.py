@@ -698,9 +698,7 @@ class XRF(object):
 
             # Apply extraction function to index
             cleaned_index = self.dataframe.index.map(extract_larger_number)
-            # Remove rows where the index couldn't be parsed (i.e., unexpected index values)
             cleaned = self.dataframe[cleaned_index.notnull()]
-            # Set the cleaned index
             cleaned.index = cleaned_index.dropna().astype(float)
         else:
             raise ValueError("No dataframe loaded to clean")
@@ -710,18 +708,14 @@ class XRF(object):
     def plot_elements(self, core_name="Core", figsize=(10, 8), ylimit=None, xlimit=None, rows=2, lw=0.75, marker=".", unit="percent",
                       savefig=False, dpi=350, savepath="elements.png"):
 
-        # extract a list of elements from self.dataframe
         elements = list(self.dataframe.columns)
 
         num_elements = len(elements)
-        # number of columns to plot
         num_cols = (num_elements + rows - 1) // rows
 
-        # create the figure and axes objects
         fig, axs = plt.subplots(
             nrows=rows, ncols=num_cols, figsize=figsize, sharey=True)
 
-        # flatten axs in case it's a multi-dimensional array
         if rows > 1 and num_cols > 1:
             axs = axs.flatten()
 
@@ -729,34 +723,25 @@ class XRF(object):
         for i, element in enumerate(elements):
             row = i // num_cols
             col = i % num_cols
-            # in case there's a single element in the list, axs shouldn't be an array
             ax = axs[i] if num_elements > 1 else axs
-            # plot the data
             ax.plot(self.dataframe[element],
                     self.dataframe.index, marker=marker, lw=lw)
             ax.grid()
             ax.set_title(f"{element}", fontsize=12)
 
-            # set the y limits from 0 to max depth
             if ylimit:
                 ax.set_ylim(0, (max(ylimit, self.dataframe.index[-1])))
             else:
                 ax.set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
-            # set the x limits from 0 to maximal concentration of the element
             if xlimit:
                 ax.set_xlim(0, (max(xlimit[i], self.dataframe[element].max())))
             else:
                 ax.set_xlim(0, self.dataframe[element].max())
 
-            # invert the y axis
             ax.yaxis.set_inverted(True)
-            # ax.axhline()
-
-            # add y axis label for first column only
             if col == 0:
                 ax.set_ylabel("Depth (cm)")
 
-        # add general title to the plot
         plt.suptitle(f"{core_name} XRF Results (in {unit})",
                      fontsize=16, y=0.99)
 
@@ -774,38 +759,128 @@ class XRF(object):
 
         fig, axs = plt.subplots(nrows=1, ncols=num_ratios, figsize=figsize,
                                 sharey=True)
-        # in case there's only one ratio, ensure axs is iterable
         if num_ratios == 1:
             axs = [axs]
 
         for i, (num, denom) in enumerate(ratio_list):
             # calculate elemental ratio
             ratio = self.dataframe[num] / self.dataframe[denom]
-            # plot ratio
             axs[i].plot(ratio, self.dataframe.index,
                         marker=marker, lw=lw, ls="-")
             axs[i].grid()
 
-            # set axes limits
             if ylimit:
                 axs[i].set_ylim(0, max(ylimit, self.dataframe.index[-1]))
             else:
                 axs[i].set_ylim(self.dataframe.index[0],
                                 self.dataframe.index[-1])
-            # axs[i].set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
             if xlimit:
                 axs[i].set_xlim(0, max(xlimit[i], max(ratio)))
             else:
                 axs[i].set_xlim(0, max(ratio))
 
-            # invert the y axis
             axs[i].yaxis.set_inverted(True)
-            # set labels
             axs[i].set_title(f"{num}/{denom}", fontsize=14)
             if i == 0:
                 axs[i].set_ylabel("Depth (cm)", fontsize=15)
 
         plt.suptitle(f"{core_name} Elemental Ratios", fontsize=16, y=0.99)
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axs
+
+    @staticmethod
+    def compare_ratios(cores,
+                       core_names=None,
+                       ratio_list=[("Si", "Al")],
+                       colors=None,
+                       lw=0.75,
+                       marker=".",
+                       figsize=(6, 8),
+                       ylimit=None,
+                       xlimit=None,
+                       savefig=False,
+                       dpi=350,
+                       savepath="compare_element_ratios.png"):
+        """
+        Compare one or more elemental ratios across several XRF cores.
+
+        Parameters
+        ----------
+        cores : list[XRF]
+            List of XRF objects to compare.
+        core_names : list[str] | None
+            Optional names that will be used in the legend. Defaults to Core 1, Core 2, …
+        ratio_list : list[tuple[str, str]]
+            List of (numerator, denominator) pairs to plot. One subplot per pair.
+        colors : list[str] | None
+            Matplotlib‑style colors, one per core. Defaults to the current rcParams cycle.
+        lw, marker, figsize, ylimit, xlimit, savefig, dpi, savepath
+            Same meaning as in `.plot_ratios()`.
+        """
+
+        import itertools
+
+        n_cores = len(cores)
+        n_ratios = len(ratio_list)
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(n_cores)]
+        if colors is None:
+            colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            colors = list(itertools.islice(itertools.cycle(colors), n_cores))
+
+        fig, axs = plt.subplots(
+            nrows=1,
+            ncols=n_ratios,
+            figsize=figsize,
+            sharey=True
+        )
+        if n_ratios == 1:
+            axs = [axs]
+
+        for j, (num, denom) in enumerate(ratio_list):
+            ax = axs[j]
+
+            for i, core in enumerate(cores):
+                ratio_series = core.dataframe[num] / core.dataframe[denom]
+                ax.plot(ratio_series,
+                        core.dataframe.index,
+                        marker=marker,
+                        lw=lw,
+                        color=colors[i],
+                        label=core_names[i])
+
+            if ylimit:
+                ax.set_ylim(0, max(ylimit, core.dataframe.index[-1]))
+            else:
+                ax.set_ylim(cores[0].dataframe.index[0],
+                            cores[0].dataframe.index[-1])
+
+            if xlimit:
+                ax.set_xlim(0, max(xlimit[j],
+                                   max(ratio_series.max() for core in cores)))
+            else:
+                ax.set_xlim(0, max(ratio_series.max() for core in cores))
+
+            ax.set_title(f"{num}/{denom}")
+            ax.yaxis.set_inverted(True)
+            ax.grid(True)
+
+            if j == 0:
+                ax.set_ylabel("Depth (cm)")
+
+        handles, labels = axs[0].get_legend_handles_labels()
+        fig.legend(handles,
+                   labels,
+                   loc="upper center",
+                   bbox_to_anchor=(0.5, 0.97),
+                   ncol=len(handles),
+                   frameon=False,
+                   fontsize=9)
+        plt.suptitle("Elemental Ratios Comparison")
         plt.tight_layout()
 
         if savefig:
