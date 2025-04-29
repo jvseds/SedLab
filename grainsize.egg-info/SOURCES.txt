@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+setup.py
+grainsize/__init__.py
+grainsize/clustering.py
+grainsize/core.py
+grainsize/mpaleo.py
+grainsize.egg-info/PKG-INFO
+grainsize.egg-info/SOURCES.txt
+grainsize.egg-info/dependency_links.txt
+grainsize.egg-info/requires.txt
+grainsize.egg-info/top_level.txt
