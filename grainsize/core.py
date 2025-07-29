@@ -752,6 +752,129 @@ class XRF(object):
 
         return fig, axs
 
+    @staticmethod
+    def compare_elements(cores,
+                         core_names=None,
+                         colors=None,
+                         lw=0.75,
+                         marker=".",
+                         figsize=(10, 8),
+                         rows=2,
+                         unit="percent",
+                         ylimit=None,
+                         xlimit=None,
+                         savefig=False,
+                         dpi=350,
+                         savepath="compare_elements.png"):
+        """
+        Compare element concentrations between cores.
+        If a single core is provided, it will plot the elements of that core.
+
+        Parameters
+        ----------
+        cores : XRF or list[XRF]
+            A single XRF object or list of XRF objects to compare.
+        core_names : list[str], optional
+            Names for each core in the legend. Defaults to Core 1, Core 2, ...
+        colors : list[str], optional
+            Colors for each core. Defaults to rcParams cycle.
+        lw : float
+            Line width for plots.
+        marker : str
+            Marker style for plots.
+        figsize : tuple
+            Figure size.
+        rows : int
+            Number of rows of subplots.
+        unit : str
+            Unit label for the super-title.
+        ylimit : tuple or list, optional
+            Y-axis limits.
+        xlimit : tuple or list, optional
+            X-axis limits for each element.
+        savefig : bool
+            Whether to save the figure.
+        dpi : int
+            DPI for saved figure.
+        savepath : str
+            File path for saved figure.
+
+        Returns
+        -------
+        fig, axs
+            Matplotlib figure and axes array.
+        """
+        import itertools
+
+        if not isinstance(cores, (list, tuple)):
+            cores = [cores]
+        n_cores = len(cores)
+
+        if core_names is None:
+            core_names = [f"Core {i+1}" for i in range(n_cores)]
+
+        if colors is None:
+            base_colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            colors = list(itertools.islice(
+                itertools.cycle(base_colors), n_cores))
+
+        # elements to plot (from first core)
+        elements = list(cores[0].dataframe.columns)
+        num_elements = len(elements)
+        num_cols = (num_elements + rows - 1) // rows
+
+        fig, axs = plt.subplots(nrows=rows,
+                                ncols=num_cols,
+                                figsize=figsize,
+                                sharey=True)
+
+        if rows > 1 or num_cols > 1:
+            axs = axs.flatten()
+        else:
+            axs = [axs]
+
+        for i, element in enumerate(elements):
+            ax = axs[i]
+            for j, core in enumerate(cores):
+                series = core.dataframe[element]
+                ax.plot(series,
+                        core.dataframe.index,
+                        marker=marker,
+                        lw=lw,
+                        color=colors[j],
+                        label=core_names[j])
+            ax.set_title(f"{element}", fontsize=12)
+            ax.grid(True)
+
+            if ylimit:
+                ax.set_ylim(0, max(ylimit, cores[0].dataframe.index[-1]))
+            else:
+                ax.set_ylim(cores[0].dataframe.index[0],
+                            cores[0].dataframe.index[-1])
+
+            if xlimit:
+                ax.set_xlim(0, max(xlimit[i],
+                                   max(core.dataframe[element].max() for core in cores)))
+            else:
+                ax.set_xlim(
+                    0, max(max(core.dataframe[element].max() for core in cores), 1))
+
+            ax.invert_yaxis()
+
+            if i % num_cols == 0:
+                ax.set_ylabel("Depth (cm)")
+
+        axs[0].legend(loc="upper right", frameon=False)
+
+        plt.suptitle(
+            f"XRF Profiles Comparison (in {unit})", fontsize=16, y=0.99)
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, axs
+
     def plot_ratios(self, core_name="Core", ratio_list=[("Si", "Al")], lw=0.75, figsize=(6, 8), ylimit=None, xlimit=None, marker=".",
                     savefig=False, dpi=350, savepath="element_ratios.png"):
 
