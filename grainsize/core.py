@@ -4,6 +4,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 from pandas import DataFrame
 from pandas.io.parsers import TextFileReader
@@ -328,7 +329,7 @@ class GrainSize(object):
 
     def plot_stats(self,
                    core_name="core",
-                   figsize=(22, 18),
+                   figsize=(8, 6),
                    marker="o",
                    linestyle="dashed",
                    save_fig=False,
@@ -400,9 +401,12 @@ class GrainSize(object):
     def plot_stats_fines(self,
                          fine_col="total",
                          core_name="core",
-                         figsize=(22, 18),
+                         figsize=(10, 8),
                          marker="o",
                          linestyle="dashed",
+                         lw=0.85,
+                         gs_scale="log",
+                         colors=None,
                          save_fig=False,
                          fpath="gs_stat_plot.png",
                          dpi=350):
@@ -422,8 +426,9 @@ class GrainSize(object):
 
         stats_labels = ["median", "mode", "mean",
                         "std", "skewness", "kurtosis"]
-        colors = ["#e0bb34", "#913800", "#521101",
-                  "#03265e", "#8a32b3", "#bd2a82"]
+        if colors is None:
+            colors = ["#ffc014", "#fa7e1e", "#d62976",
+                      "#962fbf", "#4f5bd5", "#411f96", "#c35d5b"]
 
         # define all 6 axes objects with shared x and y axes
         fig, axes = plt.subplots(figsize=figsize, nrows=1, ncols=len(stats_labels) + 1,
@@ -431,8 +436,13 @@ class GrainSize(object):
 
         for ax, stat, color in zip(axes[:-3], stats_labels[:-2], colors[:-2]):
             ax.plot(self.dataframe[stat], self.dataframe.index, marker=marker,
-                    linestyle=linestyle, linewidth=0.85, color=color)
-            # set the corresponding label
+                    linestyle=linestyle, linewidth=lw, color=color)
+
+            # set x-scale to logarithmic if specified (else linear)
+            if gs_scale == "log":
+                ax.set_xscale("log")
+
+            # set labels
             ax.set_xlabel("Grain size (µm)")
             ax.set_title(f"{stat.capitalize()}")
             # show grid
@@ -441,7 +451,7 @@ class GrainSize(object):
         # plot skewness and kurtosis
         for ax, stat, color in zip(axes[-3:-1], stats_labels[-2:], colors[-2:]):
             ax.plot(self.dataframe[stat], self.dataframe.index, marker=marker,
-                    linestyle=linestyle, linewidth=0.85, color=color)
+                    linestyle=linestyle, linewidth=lw, color=color)
             ax.set_title(f"{stat.capitalize()}")
             ax.set_ylim(0, self.dataframe.index[-1])
             # show grid
@@ -451,7 +461,7 @@ class GrainSize(object):
         ax_percentage = axes[-1]
         fine_grains = self.dataframe.loc[:, fine_col]
         ax_percentage.plot(fine_grains, self.dataframe.index, marker=marker,
-                           linestyle=linestyle, linewidth=0.85, color="#0da818")
+                           linestyle=linestyle, linewidth=lw, color=colors[-1])
         ax_percentage.set_xlabel("Percentage (%)")
         ax_percentage.set_title("< 63 µm")
         ax_percentage.set_xlim(0, 100)
@@ -751,6 +761,59 @@ class XRF(object):
             plt.savefig(savepath, dpi=dpi)
 
         return fig, axs
+
+    def plot_elements_tight(
+            self,
+            core_name="Core",
+            figsize=(4, 8),
+            ylimit=None,
+            xlimit=None,
+            lw=0.65,
+            colors=None,
+            marker=".",
+            ls="-",
+            savefig=False,
+            savepath="elements_tight.png",
+            dpi=350
+    ):
+        """
+        Plot all elements in a single column with shared y-axis."""
+
+        fig, ax = plt.subplots(figsize=figsize, ncols=1, nrows=1)
+
+        if colors in None:
+            colors = cm.viridis(np.linspace(0, 1, len(self.dataframe.columns)))
+
+        for element in self.dataframe.columns:
+            ax.plot(self.dataframe[element], self.dataframe.index,
+                    marker=marker, lw=lw, ls=ls, color=colors[self.dataframe.columns.get_loc(
+                        element)],
+                    label=element)
+            if ylimit:
+                ax.set_ylim(0, ylimit)
+            else:
+                ax.set_ylim(self.dataframe.index[0], self.dataframe.index[-1])
+
+            if xlimit:
+                ax.set_xlim(0, xlimit)
+            else:
+                ax.set_xlim(0, self.dataframe[element].max())
+
+            ax.yaxis.set_inverted(True)
+            ax.grid()
+
+        ax.set_ylabel("Depth (cm)")
+        ax.set_xlabel("Percentage (%)")
+        ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc="lower left",
+                  ncols=2, mode="expand", borderaxespad=0.)
+
+        plt.suptitle(f"{core_name} XRF Results")
+        plt.tight_layout()
+
+        if savefig:
+            plt.savefig(savepath, dpi=dpi)
+
+        return fig, ax
 
     @staticmethod
     def compare_elements(cores,
