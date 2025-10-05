@@ -4,12 +4,13 @@ Version: 0.1.0
 Summary: Sedimentological data‐analysis tools (grain‐size, XRF, forams, bryozoans)
 Home-page: https://github.com/jvseds/SedLab
 Author: Jarden Aaltonen
+License: MIT
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-Requires-Dist: pandas>=1.0
+Requires-Dist: pandas>=2.0
 Requires-Dist: numpy>=1.18
 Requires-Dist: matplotlib>=3.0
 Requires-Dist: scipy>=1.4
@@ -19,6 +20,7 @@ Dynamic: classifier
 Dynamic: description
 Dynamic: description-content-type
 Dynamic: home-page
+Dynamic: license
 Dynamic: requires-dist
 Dynamic: requires-python
 Dynamic: summary
