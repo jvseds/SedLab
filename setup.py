@@ -8,6 +8,8 @@ setup(
     long_description_content_type="text/markdown",
     author="Jarden Aaltonen",
     url="https://github.com/jvseds/SedLab",
+    license="MIT",
+    include_package_data=True,
 
     packages=find_packages(
         exclude=[
@@ -21,7 +23,7 @@ setup(
         ]
     ),
     install_requires=[
-        "pandas>=1.0",
+        "pandas>=2.0",
         "numpy>=1.18",
         "matplotlib>=3.0",
         "scipy>=1.4",
