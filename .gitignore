@@ -1,5 +1,5 @@
-# *.csv
-# *.xlsx
+*.csv
+*.xlsx
 *.png
 *.jpg
 *.pdf
@@ -8,3 +8,23 @@
 .Rproj.user/
 *.stan
 *.rds
+
+/data-files/
+
+/dist/
+/build/
+/*.egg-info/
+/**/*.egg-info/
+/__pycache__/
+/*.py[cod]
+/*.pyo
+/.pytest_cache/
+/.mypy_cache/
+/.pyre/
+/.pytype/
+/.env
+/.venv
+/venv/
+/.idea/
+/.vscode/
+/.DS_Store
