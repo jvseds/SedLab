@@ -499,13 +499,11 @@ class GrainSize(object):
         if extreme_type not in ["max", "min"]:
             raise ValueError("extreme_type must be either 'max' or 'min'.")
 
+        func = getattr(pd.Series, extreme_type)
+
         extreme_values = {
-            "median": extremes_df["median"].extreme_type(),
-            "mode": extremes_df["mode"].extreme_type(),
-            "mean": extremes_df["mean"].extreme_type(),
-            "std": extremes_df["std"].extreme_type(),
-            "skewness": extremes_df["skewness"].extreme_type(),
-            "kurtosis": extremes_df["kurtosis"].extreme_type()
+            col: func(extremes_df[col]) for col in extremes_df.columns
+            if extremes_df[col].dtype != "O"
         }
 
         return extreme_values
@@ -557,7 +555,7 @@ class GrainSize(object):
                 ax.set_xscale("log")
 
             # set x-axis limit
-            if xlimits:
+            if isinstance(xlimits, dict) and stat in xlimits:
                 ax.set_xlim(0, xlimits[stat])
 
             # set labels
@@ -576,6 +574,10 @@ class GrainSize(object):
                 ax.set_ylim(0, ylimit)
             else:
                 ax.set_ylim(0, self.core_bottom())
+
+            if isinstance(xlimits, dict) and stat in xlimits:
+                ax.set_xlim(xlimits[stat])
+
             # show grid
             ax.grid(True)
 
