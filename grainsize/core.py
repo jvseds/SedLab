@@ -330,7 +330,7 @@ class GrainSize(object):
     def plot_stats(self,
                    core_name="core",
                    figsize=(8, 6),
-                   marker="o",
+                   marker=".",
                    linestyle="dashed",
                    save_fig=False,
                    fpath="gs_stat_plot.png",
@@ -398,11 +398,125 @@ class GrainSize(object):
         else:
             return GrainSize()
 
+    def core_bottom(self):
+        """
+        Find the bottom depth of the core (assumes result is given in cm).
+        :return: float
+        """
+
+        if self.dataframe is not None:
+            return self.dataframe.index[-1]
+        else:
+            print("The dataframe is None - check again.")
+            return None
+
+    def calc_core_maxima(self):
+        """
+        Calculate the maximum values for each statistic in the stats DataFrame.
+        :return: dict with max values for each statistic
+        """
+
+        if self.dataframe is not None:
+            max_values = {
+                "median": self.dataframe["median"].max(),
+                "mode": self.dataframe["mode"].max(),
+                "mean": self.dataframe["mean"].max(),
+                "std": self.dataframe["std"].max(),
+                "skewness": self.dataframe["skewness"].max(),
+                "kurtosis": self.dataframe["kurtosis"].max()
+            }
+            return max_values
+        else:
+            print("The dataframe is None - check again.")
+            return {}
+
+    def calc_core_minima(self):
+        """
+        Calculate the minimum values for each statistic in the stats DataFrame.
+        :return: dict with min values for each statistic
+        """
+
+        if self.dataframe is not None:
+            min_values = {
+                "median": self.dataframe["median"].min(),
+                "mode": self.dataframe["mode"].min(),
+                "mean": self.dataframe["mean"].min(),
+                "std": self.dataframe["std"].min(),
+                "skewness": self.dataframe["skewness"].min(),
+                "kurtosis": self.dataframe["kurtosis"].min()
+            }
+            return min_values
+        else:
+            print("The dataframe is None - check again.")
+            return {}
+
+    @staticmethod
+    def compare_maxima(cores: list, core_names: list):
+        """
+        Compare maximum statistics values between cores in the list. Returns a DataFrame with the results.
+        :param cores: list of GrainSize objects with statistics DataFrames
+        """
+
+        maxima_dict = dict()
+        for core, core_name in zip(cores, core_names):
+            maxima_dict[core_name] = core.calc_core_maxima()
+
+        maxima_df = pd.DataFrame(maxima_dict).T
+
+        return maxima_df
+
+    @staticmethod
+    def compare_minima(cores: list, core_names: list):
+        """
+        Compare minimum statistics values between cores in the list. Returns a DataFrame with the results.
+        :param cores: list of GrainSize objects with statistics DataFrames
+        """
+
+        minima_dict = dict()
+        for core, core_name in zip(cores, core_names):
+            minima_dict[core_name] = core.calc_core_minima()
+
+        minima_df = pd.DataFrame(minima_dict).T
+
+        return minima_df
+
+    @staticmethod
+    def extract_stats_extremes(extremes_df, extreme_type="max"):
+        """
+        Extracts the extreme values (maxima or minima) from a DataFrame of statistics extremes.
+        :param extremes_df: DataFrame with statistics extremes (maxima or minima)
+        :prama extreme_type: "max" or "min" to specify which extremes to extract
+        :return: dict with extreme values for each statistic
+        """
+
+        if not isinstance(extremes_df, pd.DataFrame):
+            raise TypeError("Input must be a pandas DataFrame.")
+
+        if extremes_df.empty:
+            print("The extremes DataFrame is empty- nothing to extract")
+            return {}
+
+        if extreme_type not in ["max", "min"]:
+            raise ValueError("extreme_type must be either 'max' or 'min'.")
+
+        extreme_values = {
+            "median": extremes_df["median"].extreme_type(),
+            "mode": extremes_df["mode"].extreme_type(),
+            "mean": extremes_df["mean"].extreme_type(),
+            "std": extremes_df["std"].extreme_type(),
+            "skewness": extremes_df["skewness"].extreme_type(),
+            "kurtosis": extremes_df["kurtosis"].extreme_type()
+        }
+
+        return extreme_values
+
     def plot_stats_fines(self,
                          fine_col="total",
                          core_name="core",
                          figsize=(10, 8),
-                         marker="o",
+                         ylimit=None,
+                         xlimits=None,
+                         marker=".",
                          linestyle="dashed",
                          lw=0.85,
                          gs_scale="log",
@@ -428,7 +542,7 @@ class GrainSize(object):
                         "std", "skewness", "kurtosis"]
         if colors is None:
             colors = ["#ffc014", "#fa7e1e", "#d62976",
-                      "#962fbf", "#4f5bd5", "#411f96", "#c35d5b"]
+                      "#962fbf", "#4f5bd5", "#411f96", "#20A64F"]
 
         # define all 6 axes objects with shared x and y axes
         fig, axes = plt.subplots(figsize=figsize, nrows=1, ncols=len(stats_labels) + 1,
@@ -442,6 +556,10 @@ class GrainSize(object):
             if gs_scale == "log":
                 ax.set_xscale("log")
 
+            # set x-axis limit
+            if xlimits:
+                ax.set_xlim(0, xlimits[stat])
+
             # set labels
             ax.set_xlabel("Grain size (µm)")
             ax.set_title(f"{stat.capitalize()}")
@@ -453,11 +571,15 @@ class GrainSize(object):
             ax.plot(self.dataframe[stat], self.dataframe.index, marker=marker,
                     linestyle=linestyle, linewidth=lw, color=color)
             ax.set_title(f"{stat.capitalize()}")
-            ax.set_ylim(0, self.dataframe.index[-1])
+
+            if ylimit:
+                ax.set_ylim(0, ylimit)
+            else:
+                ax.set_ylim(0, self.core_bottom())
             # show grid
             ax.grid(True)
 
-        # plot fine grains fraction at the end of the row
+        # plot fine grains fraction (silt, clay) at the end of the row
         ax_percentage = axes[-1]
         fine_grains = self.dataframe.loc[:, fine_col]
         ax_percentage.plot(fine_grains, self.dataframe.index, marker=marker,
@@ -466,12 +588,18 @@ class GrainSize(object):
         ax_percentage.set_title("< 63 µm")
         ax_percentage.set_xlim(0, 100)
 
-        ax_percentage.set_ylim(0, self.dataframe.index[-1])
+        if ylimit:
+            ax_percentage.set_ylim(0, ylimit)
+        else:
+            ax_percentage.set_ylim(0, self.core_bottom())
         ax_percentage.grid(True)
 
         # set for all axes
         axes[0].set_ylabel("Depth (cm)")
-        axes[0].set_ylim(0, self.dataframe.index[-1])
+        if ylimit:
+            axes[0].set_ylim(0, ylimit)
+        else:
+            axes[0].set_ylim(0, self.core_bottom())
         plt.gca().invert_yaxis()
         plt.suptitle(f"{core_name} Grain Size Distribution Statistics")
 
@@ -596,12 +724,13 @@ class XRF(object):
         Initializes the XRF object. Loads data from an Excel file if 'fname' is provided.
 
         Parameters:
-        - fname: Filename or path of the XRF Excel file.
+        - fname: Filename or path of an XRF Excel file. In case of using a CSV file, pass pd.read_csv() to 'dataframe' instead.
         - sheet_name: Name of the sheet in the Excel file to read.
         - header: Row number where headers are located (0-indexed).
         - usecols: Columns to parse from the Excel file.
         - index_col: Column to set as index.
-        - dataframe: Existing pandas DataFrame to initialize the object with.
+        -tp: Whether to transpose the DataFrame after loading.
+        - dataframe: Existing pandas DataFrame to initialize the object with. If instantiated directly from a CSV file, pass pd.read_csv() to this parameter.
         """
         self.dataframe = dataframe
         if dataframe is None and fname:
@@ -781,7 +910,7 @@ class XRF(object):
 
         fig, ax = plt.subplots(figsize=figsize, ncols=1, nrows=1)
 
-        if colors in None:
+        if colors is None:
             colors = cm.viridis(np.linspace(0, 1, len(self.dataframe.columns)))
 
         for element in self.dataframe.columns:
@@ -1169,7 +1298,7 @@ class Stratigraphy(object):
 class CoreAnalysis:
     # all methods here are static.
     @staticmethod
-    def plot_combined_stats(gs_obj, xrf_obj, core_name="Core", ylimit=263, xrf_els=["Mg", "Fe"], gs_stats=["mean", "mode", "median"], figsize=(10, 8), marker="o", linestyle="dashed"):
+    def plot_combined_stats(gs_obj, xrf_obj, core_name="Core", ylimit=263, xrf_els=["Mg", "Fe"], gs_stats=["mean", "mode", "median"], figsize=(10, 8), marker=".", linestyle="dashed"):
         """
         Plot mode, median, and mean from GrainSize alongside selected XRF elements in separate subplots.
 
