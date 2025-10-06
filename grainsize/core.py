@@ -928,7 +928,7 @@ class XRF(object):
             if xlimit:
                 ax.set_xlim(0, xlimit)
             else:
-                ax.set_xlim(0, self.dataframe.values().max())
+                ax.set_xlim(0, self.dataframe.values.max())
 
             ax.yaxis.set_inverted(True)
 
