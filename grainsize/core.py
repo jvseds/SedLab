@@ -896,7 +896,7 @@ class XRF(object):
     def plot_elements_tight(
             self,
             core_name="Core",
-            figsize=(4, 8),
+            figsize=(3, 8),
             ylimit=None,
             xlimit=None,
             lw=0.65,
@@ -928,11 +928,11 @@ class XRF(object):
             if xlimit:
                 ax.set_xlim(0, xlimit)
             else:
-                ax.set_xlim(0, self.dataframe[element].max())
+                ax.set_xlim(0, self.dataframe.values().max())
 
             ax.yaxis.set_inverted(True)
-            ax.grid()
 
+        ax.grid()
         ax.set_ylabel("Depth (cm)")
         ax.set_xlabel("Percentage (%)")
         ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc="lower left",
