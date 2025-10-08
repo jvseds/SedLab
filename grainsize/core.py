@@ -556,7 +556,10 @@ class GrainSize(object):
 
             # set x-axis limit
             if isinstance(xlimits, dict) and stat in xlimits:
-                ax.set_xlim(0, xlimits[stat])
+                if gs_scale == "log":
+                    ax.set_xlim(1e-1, xlimits[stat])
+                else:
+                    ax.set_xlim(0, xlimits[stat])
 
             # set labels
             ax.set_xlabel("Grain size (µm)")
