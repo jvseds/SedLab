@@ -579,7 +579,7 @@ class GrainSize(object):
                 ax.set_ylim(0, self.core_bottom())
 
             if isinstance(xlimits, dict) and stat in xlimits:
-                ax.set_xlim(xlimits[stat])
+                ax.set_xlim(right=xlimits[stat])
 
             # show grid
             ax.grid(True)
